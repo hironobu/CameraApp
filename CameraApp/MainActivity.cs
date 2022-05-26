@@ -1,14 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using Android.App;
 using Android.Content;
 using Android.Content.PM;
 using Android.Graphics;
+using Android.Hardware.Camera2;
+using Android.Media;
 using Android.OS;
 using Android.Provider;
 using Android.Widget;
 using AndroidX.Core.Content;
 using Java.IO;
+using Java.Lang;
 using Uri = Android.Net.Uri;
 
 namespace CameraApp
@@ -63,16 +67,25 @@ namespace CameraApp
 
         private void TakeAPicture(object sender, EventArgs eventArgs)
         {
-            Context context = Android.App.Application.Context;
+            Context context = Application.Context;
 
             Intent intent = new Intent(MediaStore.ActionImageCapture);
-            App._file = new File(App._dir, String.Format("myPhoto_{0}.jpg", Guid.NewGuid()));
+            App._file = new File(App._dir, string.Format("myPhoto_{0}.jpg", Guid.NewGuid()));
             //intent.PutExtra(MediaStore.ExtraOutput, Uri.FromFile(App._file));
             Uri uri = FileProvider.GetUriForFile(this, $"{context.PackageName}.fileprovider", App._file);
 
             intent.PutExtra(MediaStore.ExtraOutput, uri);
+            // intent.PutExtra(MediaStore.ExtraScreenOrientation, (int)ScreenOrientation.Portrait);
+
             // intent.SetType("message/rfc822");
             StartActivityForResult(intent, 0);
+
+            Diagnostics();
+        }
+
+        private void ProcessOCR(string path)
+        {
+            VisionClient.ProcessFile(path);
         }
 
         protected override void OnActivityResult(int requestCode, Result resultCode, Intent data)
@@ -80,60 +93,59 @@ namespace CameraApp
             base.OnActivityResult(requestCode, resultCode, data);
 
             // Make it available in the gallery
-
-            Intent mediaScanIntent = new Intent(Intent.ActionMediaScannerScanFile);
             Uri contentUri = Uri.FromFile(App._file);
-            mediaScanIntent.SetData(contentUri);
-            SendBroadcast(mediaScanIntent);
+
+            // 標準ギャラリーにスキャンさせる
+            MediaScannerConnection.ScanFile( // API Level 8
+                    this, // Context
+                    new string[] { contentUri.Path },
+                    new string[] { "image/jpeg" },
+                    null);
 
             // Display in ImageView. We will resize the bitmap to fit the display.
             // Loading the full sized image will consume to much memory
             // and cause the application to crash.
+            var orientation = BitmapHelpers.GetOrientation(contentUri);
+            System.Diagnostics.Debug.WriteLine(orientation);
 
             int height = Resources.DisplayMetrics.HeightPixels;
             int width = _imageView.Height;
-            App.bitmap = App._file.Path.LoadAndResizeBitmap(width, height);
-            if (App.bitmap != null)
+            var bitmap = BitmapHelpers.LoadAndResizeBitmap(App._file.Path, width, height, orientation);
+            if (bitmap != null)
             {
-                _imageView.SetImageBitmap(App.bitmap);
-                App.bitmap = null;
+                _imageView.SetImageBitmap(bitmap);
+
+                var pngpath = System.IO.Path.ChangeExtension(App._file.Path, ".resized.jpg");
+                BitmapHelpers.ExportBitmapAsJpeg(bitmap, pngpath);
+
+                {
+                    var f = new System.IO.FileInfo(pngpath);
+                    System.Diagnostics.Debug.WriteLine($"{width}, {height}, {f.Length}");
+                }
+
+                ProcessOCR(pngpath);
             }
 
             // Dispose of the Java side bitmap.
             GC.Collect();
         }
 
-    }
-
-
-
-    public static class BitmapHelpers
-    {
-        public static Bitmap LoadAndResizeBitmap(this string fileName, int width, int height)
+        public void Diagnostics()
         {
-            // First we get the the dimensions of the file on disk
-            BitmapFactory.Options options = new BitmapFactory.Options { InJustDecodeBounds = true };
-            var bitmap = BitmapFactory.DecodeFile(fileName, options);
+            CameraManager cameraManager = (CameraManager)GetSystemService(CameraService);
+            var selectedCameraId = cameraManager.GetCameraIdList().First();
+            CameraCharacteristics characteristics = cameraManager.GetCameraCharacteristics(selectedCameraId);
+            Integer sensorOrientation = (Integer)characteristics.Get(CameraCharacteristics.SensorOrientation);
 
-            // Next we calculate the ratio that we need to resize the image by
-            // in order to fit the requested dimensions.
-            int outHeight = options.OutHeight;
-            int outWidth = options.OutWidth;
-            int inSampleSize = 1;
+            System.Diagnostics.Debug.WriteLine(sensorOrientation);
 
-            if (outHeight > height || outWidth > width)
-            {
-                inSampleSize = outWidth > outHeight
-                                   ? outHeight / height
-                                   : outWidth / width;
-            }
+            var rotation = WindowManager.DefaultDisplay.Rotation;
 
-            // Now we will load the image and have BitmapFactory resize it for us.
-            options.InSampleSize = inSampleSize;
-            options.InJustDecodeBounds = false;
-            Bitmap resizedBitmap = BitmapFactory.DecodeFile(fileName, options);
+            System.Diagnostics.Debug.WriteLine(rotation);
 
-            return resizedBitmap;
+            var orientation = Resources.Configuration.Orientation;
+
+            System.Diagnostics.Debug.WriteLine(orientation);
         }
     }
 }
