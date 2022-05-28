@@ -26,5 +26,5 @@
 		android:layout_height="300.0dp"
 		android:id="@+id/imageView1"
 		android:adjustViewBounds="true"
-		android:contentDescription="description" />
+		android:contentDescription="@string/description" />
 </LinearLayout>

@@ -11,6 +11,7 @@ using Android.OS;
 using Android.Provider;
 using Android.Widget;
 using AndroidX.Core.Content;
+using AndroidX.Fragment.App;
 using Java.IO;
 using Java.Lang;
 using Uri = Android.Net.Uri;
@@ -67,6 +68,7 @@ namespace CameraApp
 
         private void TakeAPicture(object sender, EventArgs eventArgs)
         {
+#if false
             Context context = Application.Context;
 
             Intent intent = new Intent(MediaStore.ActionImageCapture);
@@ -81,6 +83,11 @@ namespace CameraApp
             StartActivityForResult(intent, 0);
 
             Diagnostics();
+#endif
+
+            var intent = new Intent(this, typeof(CameraActivity));
+
+            StartActivity(intent);
         }
 
         private void ProcessOCR(string path)
@@ -146,6 +153,22 @@ namespace CameraApp
             var orientation = Resources.Configuration.Orientation;
 
             System.Diagnostics.Debug.WriteLine(orientation);
+        }
+    }
+
+    [Activity(Label = "@string/app_name", Theme = "@style/AppTheme.NoActionBar")]
+    public class CameraActivity : FragmentActivity
+    {
+        protected override void OnCreate(Bundle bundle)
+        {
+            base.OnCreate(bundle);
+            // ActionBar.Hide();
+            SetContentView(Resource.Layout.activity_camera);
+
+            if (bundle == null)
+            {
+                SupportFragmentManager.BeginTransaction().Replace(Resource.Id.container, Camera2BasicFragment.NewInstance()).Commit();
+            }
         }
     }
 }

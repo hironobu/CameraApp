@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
@@ -66,6 +66,15 @@
     <Compile Include="Vision.cs" />
     <Compile Include="BitmapHelpers.cs" />
     <Compile Include="CameraHelpers.cs" />
+    <Compile Include="Listeners\CameraStateListener.cs" />
+    <Compile Include="Listeners\CameraCaptureStillPictureSessionCallback.cs" />
+    <Compile Include="Listeners\ImageAvailableListener.cs" />
+    <Compile Include="Listeners\CameraCaptureListener.cs" />
+    <Compile Include="Listeners\Camera2BasicSurfaceTextureListener.cs" />
+    <Compile Include="Listeners\CameraCaptureSessionCallback.cs" />
+    <Compile Include="Camera2BasicFragment.cs" />
+    <Compile Include="CompareSizesByArea.cs" />
+    <Compile Include="AutoFitTextureView.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\AboutResources.txt" />
@@ -106,12 +115,55 @@
       <SubType></SubType>
       <Generator></Generator>
     </AndroidResource>
+    <AndroidResource Include="Resources\layout\activity_camera.xml">
+      <SubType></SubType>
+      <Generator></Generator>
+    </AndroidResource>
+    <AndroidResource Include="Resources\drawable-hdpi\ic_action_info.png">
+      <SubType></SubType>
+      <Generator></Generator>
+    </AndroidResource>
+    <AndroidResource Include="Resources\drawable-hdpi\tile.9.png">
+      <SubType></SubType>
+      <Generator></Generator>
+    </AndroidResource>
+    <AndroidResource Include="Resources\drawable-hdpi\ic_launcher.png">
+      <SubType></SubType>
+      <Generator></Generator>
+    </AndroidResource>
+    <AndroidResource Include="Resources\drawable-mdpi\ic_action_info.png">
+      <SubType></SubType>
+      <Generator></Generator>
+    </AndroidResource>
+    <AndroidResource Include="Resources\drawable-mdpi\ic_launcher.png">
+      <SubType></SubType>
+      <Generator></Generator>
+    </AndroidResource>
+    <AndroidResource Include="Resources\drawable-xhdpi\ic_action_info.png">
+      <SubType></SubType>
+      <Generator></Generator>
+    </AndroidResource>
+    <AndroidResource Include="Resources\drawable-xhdpi\ic_launcher.png">
+      <SubType></SubType>
+      <Generator></Generator>
+    </AndroidResource>
+    <AndroidResource Include="Resources\drawable-xxhdpi\ic_action_info.png">
+      <SubType></SubType>
+      <Generator></Generator>
+    </AndroidResource>
+    <AndroidResource Include="Resources\drawable-xxhdpi\ic_launcher.png">
+      <SubType></SubType>
+      <Generator></Generator>
+    </AndroidResource>
+    <AndroidResource Include="Resources\layout\fragment_camera2_basic.xml">
+      <SubType></SubType>
+      <Generator></Generator>
+    </AndroidResource>
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Resources\drawable\" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Xamarin.AndroidX.AppCompat" Version="1.2.0.5" />
     <PackageReference Include="Xamarin.Google.Android.Material" Version="1.0.0.1" />
     <PackageReference Include="Xamarin.Essentials">
       <Version>1.6.1</Version>
@@ -119,7 +171,16 @@
     <PackageReference Include="Microsoft.Azure.CognitiveServices.Vision.ComputerVision">
       <Version>7.0.1</Version>
     </PackageReference>
-  </ItemGroup>
+    <PackageReference Include="Xamarin.AndroidX.Legacy.Support.V13">
+      <Version>1.0.0-preview02</Version>
+    </PackageReference>
+    <PackageReference Include="Xamarin.AndroidX.Legacy.Support.V13">
+      <Version>1.0.0.10</Version>
+    </PackageReference>
+    <PackageReference Include="Xamarin.AndroidX.Lifecycle.LiveData">
+      <Version>2.2.0.3</Version>
+    </PackageReference>
+  <PackageReference Include="Xamarin.AndroidX.Migration" Version="1.0.0-preview03" /></ItemGroup>
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\Android\Xamarin.Android.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it.
     Other similar extension points exist, see Microsoft.Common.targets.
