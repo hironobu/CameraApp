@@ -87,7 +87,7 @@ namespace CameraApp
 
             var intent = new Intent(this, typeof(CameraActivity));
 
-            StartActivity(intent);
+            StartActivityForResult(intent, 0);
         }
 
         private void ProcessOCR(string path)
@@ -100,7 +100,13 @@ namespace CameraApp
             base.OnActivityResult(requestCode, resultCode, data);
 
             // Make it available in the gallery
-            Uri contentUri = Uri.FromFile(App._file);
+            var file = data.GetStringExtra("file");
+            if (file == null)
+            {
+                return;
+            }
+
+            Uri contentUri = Uri.FromFile(new File(file));
 
             // 標準ギャラリーにスキャンさせる
             MediaScannerConnection.ScanFile( // API Level 8
@@ -117,12 +123,12 @@ namespace CameraApp
 
             int height = Resources.DisplayMetrics.HeightPixels;
             int width = _imageView.Height;
-            var bitmap = BitmapHelpers.LoadAndResizeBitmap(App._file.Path, width, height, orientation);
+            var bitmap = BitmapHelpers.LoadAndResizeBitmap(file, width, height, orientation);
             if (bitmap != null)
             {
                 _imageView.SetImageBitmap(bitmap);
 
-                var pngpath = System.IO.Path.ChangeExtension(App._file.Path, ".resized.jpg");
+                var pngpath = System.IO.Path.ChangeExtension(file, ".resized.jpg");
                 BitmapHelpers.ExportBitmapAsJpeg(bitmap, pngpath);
 
                 {

@@ -79,6 +79,10 @@ namespace CameraApp.Listeners
                         }
                         break;
                     }
+
+                case Camera2BasicFragment.STATE_PICTURE_TAKEN:
+                    // owner.Finish();
+                    break;
             }
         }
     }

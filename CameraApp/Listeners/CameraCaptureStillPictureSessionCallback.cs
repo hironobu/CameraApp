@@ -1,3 +1,4 @@
+using Android.Content;
 using Android.Hardware.Camera2;
 using Android.Util;
 
@@ -23,6 +24,11 @@ namespace CameraApp.Listeners
             owner.ShowToast("Saved: " + owner.mFile);
             Log.Debug(TAG, owner.mFile.ToString());
             owner.UnlockFocus();
+
+            var intent = new Intent();
+            intent.PutExtra("file", owner.mFile.ToString());
+            owner.Activity.SetResult(0, intent);
+            owner.Finish();
         }
     }
 }

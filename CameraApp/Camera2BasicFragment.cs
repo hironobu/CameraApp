@@ -277,11 +277,11 @@ namespace CameraApp
 
         public void Finish()
         {
-            CloseCamera();
-            StopBackgroundThread();
+            // Activity.SupportFragmentManager.BeginTransaction().Remove(this).Commit();
 
-            Activity.SupportFragmentManager.BeginTransaction().Remove(this).Commit();
-            Activity.FinishActivity(1);
+            // CloseCamera();
+            // StopBackgroundThread();
+            Activity.Finish();
         }
 
 
@@ -689,6 +689,7 @@ namespace CameraApp
             if (v.Id == Resource.Id.picture)
             {
                 TakePicture();
+                // Activity.Finish();
             }
             else if (v.Id == Resource.Id.info)
             {

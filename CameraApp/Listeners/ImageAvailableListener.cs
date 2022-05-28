@@ -67,8 +67,6 @@ namespace CameraApp.Listeners
                     finally
                     {
                         mImage.Close();
-
-                        
                     }
                 }
             }
