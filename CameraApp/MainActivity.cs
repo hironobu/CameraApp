@@ -9,10 +9,7 @@ using Android.Hardware.Camera2;
 using Android.Media;
 using Android.OS;
 using Android.Provider;
-using Android.Util;
 using Android.Widget;
-using AndroidX.Core.Content;
-using AndroidX.Fragment.App;
 using Java.IO;
 using Java.Lang;
 using Uri = Android.Net.Uri;
@@ -161,22 +158,6 @@ namespace CameraApp
             var orientation = Resources.Configuration.Orientation;
 
             System.Diagnostics.Debug.WriteLine(orientation);
-        }
-    }
-
-    [Activity(Label = "@string/app_name", Theme = "@style/AppTheme.NoActionBar")]
-    public class CameraActivity : FragmentActivity
-    {
-        protected override void OnCreate(Bundle bundle)
-        {
-            base.OnCreate(bundle);
-            // ActionBar.Hide();
-            SetContentView(Resource.Layout.activity_camera);
-
-            if (bundle == null)
-            {
-                SupportFragmentManager.BeginTransaction().Replace(Resource.Id.container, Camera2BasicFragment.NewInstance()).Commit();
-            }
         }
     }
 }

@@ -27,14 +27,14 @@ namespace CameraApp.Listeners
 
         private void Process(CaptureResult result)
         {
-            switch (owner.mState)
+            switch (owner._state)
             {
                 case Camera2BasicFragment.STATE_WAITING_LOCK:
                     {
                         Integer afState = (Integer)result.Get(CaptureResult.ControlAfState);
                         if (afState == null)
                         {
-                            owner.mState = Camera2BasicFragment.STATE_PICTURE_TAKEN; // avoids multiple picture callbacks
+                            owner._state = Camera2BasicFragment.STATE_PICTURE_TAKEN; // avoids multiple picture callbacks
                             owner.CaptureStillPicture();
                         }
 
@@ -46,7 +46,7 @@ namespace CameraApp.Listeners
                             if (aeState == null ||
                                     aeState.IntValue() == ((int)ControlAEState.Converged))
                             {
-                                owner.mState = Camera2BasicFragment.STATE_PICTURE_TAKEN;
+                                owner._state = Camera2BasicFragment.STATE_PICTURE_TAKEN;
                                 owner.CaptureStillPicture();
                             }
                             else
@@ -64,7 +64,7 @@ namespace CameraApp.Listeners
                                 aeState.IntValue() == ((int)ControlAEState.Precapture) ||
                                 aeState.IntValue() == ((int)ControlAEState.FlashRequired))
                         {
-                            owner.mState = Camera2BasicFragment.STATE_WAITING_NON_PRECAPTURE;
+                            owner._state = Camera2BasicFragment.STATE_WAITING_NON_PRECAPTURE;
                         }
                         break;
                     }
@@ -74,7 +74,7 @@ namespace CameraApp.Listeners
                         Integer aeState = (Integer)result.Get(CaptureResult.ControlAeState);
                         if (aeState == null || aeState.IntValue() != ((int)ControlAEState.Precapture))
                         {
-                            owner.mState = Camera2BasicFragment.STATE_PICTURE_TAKEN;
+                            owner._state = Camera2BasicFragment.STATE_PICTURE_TAKEN;
                             owner.CaptureStillPicture();
                         }
                         break;
