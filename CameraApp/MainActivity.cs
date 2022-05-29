@@ -93,7 +93,7 @@ namespace CameraApp
 
         private void ProcessOCR(string path)
         {
-            VisionClient.ProcessFile(path);
+            new VisionClient(Constants.AzureComputerVisionApiKey, Constants.AzureComputerVisionEndpoint).ProcessFile(path);
         }
 
         protected override void OnActivityResult(int requestCode, Result resultCode, Intent data)

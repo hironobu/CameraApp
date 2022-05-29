@@ -76,6 +76,7 @@
     <Compile Include="CompareSizesByArea.cs" />
     <Compile Include="AutoFitTextureView.cs" />
     <Compile Include="PreviewOverlayView.cs" />
+    <Compile Include="Constants.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\AboutResources.txt" />
