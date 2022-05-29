@@ -369,7 +369,12 @@ namespace CameraApp
                     intent.PutExtra("file", originpath);
                     intent.PutExtra("ocrtext", ocrtext);
                     Activity.SetResult(0, intent);
-                    Activity.RunOnUiThread(() => { ShowToast($"result: {ocrtext}"); });
+                    Activity.RunOnUiThread(() =>
+                    {
+                        _previewOverlayView.Color = Color.White;
+                        _previewOverlayView.Invalidate();
+                        ShowToast($"result: {ocrtext}");
+                    });
                 });
             }
         }
@@ -674,6 +679,9 @@ namespace CameraApp
         // Initiate a still image capture.
         private void TakePicture()
         {
+            _previewOverlayView.Color = Color.Red;
+            _previewOverlayView.Invalidate();
+
             LockFocus();
         }
 

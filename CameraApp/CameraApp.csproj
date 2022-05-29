@@ -71,7 +71,6 @@
     <Compile Include="Listeners\CameraCaptureListener.cs" />
     <Compile Include="Listeners\Camera2BasicSurfaceTextureListener.cs" />
     <Compile Include="Listeners\CameraCaptureSessionCallback.cs" />
-    <Compile Include="Camera2BasicFragment.cs" />
     <Compile Include="AutoFitTextureView.cs" />
     <Compile Include="PreviewOverlayView.cs" />
     <Compile Include="Constants.cs" />

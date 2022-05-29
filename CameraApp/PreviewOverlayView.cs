@@ -28,7 +28,7 @@ namespace CameraApp
 
         public int Span { get; set; } = 50;
 
-        public Color Color { get; set; } = Color.Red;
+        public Color Color { get; set; } = Color.White;
 
         protected override void OnMeasure(int widthMeasureSpec, int heightMeasureSpec)
         {
@@ -62,16 +62,18 @@ namespace CameraApp
             var h = AvailableSize.Height * r.Width() / AvailableSize.Width;
             var rect = new Rect(StrokeWidth / 2, h / 2 - Span, Width - StrokeWidth / 2, h / 2 + Span);
 
-            Paint paint = new Paint();
-            paint.StrokeWidth = StrokeWidth;
-            paint.StrokeCap = Paint.Cap.Square;
-            paint.SetColor(this.Color);
-            paint.SetStyle(Paint.Style.Stroke);
-            canvas?.DrawRect(rect, paint);
+            _paint.StrokeWidth = StrokeWidth;
+            _paint.StrokeCap = Paint.Cap.Square;
+            _paint.Color = this.Color;
+            _paint.SetStyle(Paint.Style.Stroke);
+
+            canvas?.DrawRect(rect, _paint);
         }
 
         private int mRatioWidth = 0;
         private int mRatioHeight = 0;
+
+        private Paint _paint = new Paint();
     }
 }
 
