@@ -30,6 +30,8 @@ namespace CameraApp
 
         public Color Color { get; set; } = Color.White;
 
+        public Bitmap? Bitmap { get; set; } = null;
+
         protected override void OnMeasure(int widthMeasureSpec, int heightMeasureSpec)
         {
             base.OnMeasure(widthMeasureSpec, heightMeasureSpec);
@@ -55,6 +57,11 @@ namespace CameraApp
         protected override void OnDraw(Canvas? canvas)
         {
             base.OnDraw(canvas);
+
+            if (Bitmap != null)
+            {
+                canvas?.DrawBitmap(Bitmap, 0, 0, null);
+            }
 
             var r = new Rect();
             GetDrawingRect(r);

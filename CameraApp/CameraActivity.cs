@@ -371,6 +371,7 @@ namespace CameraApp
                     Activity.SetResult(0, intent);
                     Activity.RunOnUiThread(() =>
                     {
+                        _previewOverlayView.Bitmap = null;
                         _previewOverlayView.Color = Color.White;
                         _previewOverlayView.Invalidate();
                         ShowToast($"result: {ocrtext}");
@@ -681,6 +682,8 @@ namespace CameraApp
         {
             _previewOverlayView.Color = Color.Red;
             _previewOverlayView.Invalidate();
+
+            _previewOverlayView.Bitmap = _textureView.Bitmap;
 
             LockFocus();
         }
