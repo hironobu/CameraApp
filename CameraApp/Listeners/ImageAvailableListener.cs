@@ -1,7 +1,9 @@
+#nullable enable
+
+using System.Linq;
 using Android.Media;
 using Java.IO;
 using Java.Lang;
-using Java.Nio;
 
 namespace CameraApp.Listeners
 {
@@ -9,52 +11,44 @@ namespace CameraApp.Listeners
     {
         public ImageAvailableListener(Camera2BasicFragment fragment, File file)
         {
-            if (fragment == null)
-                throw new System.ArgumentNullException("fragment");
-            if (file == null)
-                throw new System.ArgumentNullException("file");
-
-            owner = fragment;
-            this.file = file;
+            _owner = fragment;
+            _file = file;
         }
 
-        private readonly File file;
-        private readonly Camera2BasicFragment owner;
-
-        //public File File { get; private set; }
-        //public Camera2BasicFragment Owner { get; private set; }
-
-        public void OnImageAvailable(ImageReader reader)
+        public void OnImageAvailable(ImageReader? reader)
         {
-            owner._backgroundHandler.Post(new ImageSaver(reader.AcquireNextImage(), file));
+            if (reader != null)
+            {
+                var image = reader.AcquireNextImage();
+                if (image != null)
+                {
+                    _owner._backgroundHandler.Post(new ImageSaver(image, _file));
+                }
+            }
         }
 
-        // Saves a JPEG {@link Image} into the specified {@link File}.
+        private readonly File _file;
+        private readonly Camera2BasicFragment _owner;
+
         private class ImageSaver : Java.Lang.Object, IRunnable
         {
-            // The JPEG image
-            private Image mImage;
-
-            // The file we save the image into.
-            private File mFile;
-
             public ImageSaver(Image image, File file)
             {
-                if (image == null)
-                    throw new System.ArgumentNullException("image");
-                if (file == null)
-                    throw new System.ArgumentNullException("file");
-
-                mImage = image;
-                mFile = file;
+                _image = image;
+                _file = file;
             }
 
             public void Run()
             {
-                ByteBuffer buffer = mImage.GetPlanes()[0].Buffer;
+                var buffer = _image.GetPlanes()?.FirstOrDefault()?.Buffer;
+                if (buffer == null)
+                {
+                    return;
+                }
+
                 byte[] bytes = new byte[buffer.Remaining()];
                 buffer.Get(bytes);
-                using (var output = new FileOutputStream(mFile))
+                using (var output = new FileOutputStream(_file))
                 {
                     try
                     {
@@ -66,10 +60,13 @@ namespace CameraApp.Listeners
                     }
                     finally
                     {
-                        mImage.Close();
+                        _image.Close();
                     }
                 }
             }
+
+            private Image _image;
+            private File _file;
         }
     }
 }

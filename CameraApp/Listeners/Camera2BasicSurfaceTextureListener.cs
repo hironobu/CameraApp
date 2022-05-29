@@ -1,36 +1,36 @@
+#nullable enable
+
 using Android.Views;
+using Android.Graphics;
 
 namespace CameraApp.Listeners
 {
     public class Camera2BasicSurfaceTextureListener : Java.Lang.Object, TextureView.ISurfaceTextureListener
     {
-        private readonly Camera2BasicFragment owner;
-
         public Camera2BasicSurfaceTextureListener(Camera2BasicFragment owner)
         {
-            if (owner == null)
-                throw new System.ArgumentNullException("owner");
-            this.owner = owner;
+            _owner = owner;
         }
 
-        public void OnSurfaceTextureAvailable(Android.Graphics.SurfaceTexture surface, int width, int height)
+        public void OnSurfaceTextureAvailable(SurfaceTexture surface, int width, int height)
         {
-            owner.OpenCamera(width, height);
+            _owner.OpenCamera(width, height);
         }
 
-        public bool OnSurfaceTextureDestroyed(Android.Graphics.SurfaceTexture surface)
+        public bool OnSurfaceTextureDestroyed(SurfaceTexture surface)
         {
             return true;
         }
 
-        public void OnSurfaceTextureSizeChanged(Android.Graphics.SurfaceTexture surface, int width, int height)
+        public void OnSurfaceTextureSizeChanged(SurfaceTexture surface, int width, int height)
         {
-            owner.ConfigureTransform(width, height);
+            _owner.ConfigureTransform(width, height);
         }
 
-        public void OnSurfaceTextureUpdated(Android.Graphics.SurfaceTexture surface)
+        public void OnSurfaceTextureUpdated(SurfaceTexture surface)
         {
-
         }
+
+        private readonly Camera2BasicFragment _owner;
     }
 }

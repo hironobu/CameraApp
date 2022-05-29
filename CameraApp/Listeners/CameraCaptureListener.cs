@@ -1,18 +1,15 @@
+#nullable enable
+
 using Android.Hardware.Camera2;
-using Java.IO;
 using Java.Lang;
 
 namespace CameraApp.Listeners
 {
     public class CameraCaptureListener : CameraCaptureSession.CaptureCallback
     {
-        private readonly Camera2BasicFragment owner;
-
         public CameraCaptureListener(Camera2BasicFragment owner)
         {
-            if (owner == null)
-                throw new System.ArgumentNullException("owner");
-            this.owner = owner;
+            this._owner = owner;
         }
 
         public override void OnCaptureCompleted(CameraCaptureSession session, CaptureRequest request, TotalCaptureResult result)
@@ -27,31 +24,28 @@ namespace CameraApp.Listeners
 
         private void Process(CaptureResult result)
         {
-            switch (owner._state)
+            switch (_owner._state)
             {
                 case Camera2BasicFragment.STATE_WAITING_LOCK:
                     {
-                        Integer afState = (Integer)result.Get(CaptureResult.ControlAfState);
+                        var afState = ((Integer?)result.Get(CaptureResult.ControlAfState))?.IntValue();
                         if (afState == null)
                         {
-                            owner._state = Camera2BasicFragment.STATE_PICTURE_TAKEN; // avoids multiple picture callbacks
-                            owner.CaptureStillPicture();
+                            _owner._state = Camera2BasicFragment.STATE_PICTURE_TAKEN; // avoids multiple picture callbacks
+                            _owner.CaptureStillPicture();
                         }
-
-                        else if ((((int)ControlAFState.FocusedLocked) == afState.IntValue()) ||
-                                   (((int)ControlAFState.NotFocusedLocked) == afState.IntValue()))
+                        else if (afState == (int)ControlAFState.FocusedLocked || afState == (int)ControlAFState.NotFocusedLocked)
                         {
                             // ControlAeState can be null on some devices
-                            Integer aeState = (Integer)result.Get(CaptureResult.ControlAeState);
-                            if (aeState == null ||
-                                    aeState.IntValue() == ((int)ControlAEState.Converged))
+                            var aeState = (Integer?)result.Get(CaptureResult.ControlAeState);
+                            if (aeState == null || aeState.IntValue() == ((int)ControlAEState.Converged))
                             {
-                                owner._state = Camera2BasicFragment.STATE_PICTURE_TAKEN;
-                                owner.CaptureStillPicture();
+                                _owner._state = Camera2BasicFragment.STATE_PICTURE_TAKEN;
+                                _owner.CaptureStillPicture();
                             }
                             else
                             {
-                                owner.RunPrecaptureSequence();
+                                _owner.RunPrecaptureSequence();
                             }
                         }
                         break;
@@ -59,31 +53,32 @@ namespace CameraApp.Listeners
                 case Camera2BasicFragment.STATE_WAITING_PRECAPTURE:
                     {
                         // ControlAeState can be null on some devices
-                        Integer aeState = (Integer)result.Get(CaptureResult.ControlAeState);
+                        var aeState = ((Integer?)result.Get(CaptureResult.ControlAeState))?.IntValue();
                         if (aeState == null ||
-                                aeState.IntValue() == ((int)ControlAEState.Precapture) ||
-                                aeState.IntValue() == ((int)ControlAEState.FlashRequired))
+                            aeState == ((int)ControlAEState.Precapture) ||
+                            aeState == ((int)ControlAEState.FlashRequired))
                         {
-                            owner._state = Camera2BasicFragment.STATE_WAITING_NON_PRECAPTURE;
+                            _owner._state = Camera2BasicFragment.STATE_WAITING_NON_PRECAPTURE;
                         }
                         break;
                     }
                 case Camera2BasicFragment.STATE_WAITING_NON_PRECAPTURE:
                     {
                         // ControlAeState can be null on some devices
-                        Integer aeState = (Integer)result.Get(CaptureResult.ControlAeState);
-                        if (aeState == null || aeState.IntValue() != ((int)ControlAEState.Precapture))
+                        var aeState = ((Integer?)result.Get(CaptureResult.ControlAeState))?.IntValue();
+                        if (aeState == null || aeState != ((int)ControlAEState.Precapture))
                         {
-                            owner._state = Camera2BasicFragment.STATE_PICTURE_TAKEN;
-                            owner.CaptureStillPicture();
+                            _owner._state = Camera2BasicFragment.STATE_PICTURE_TAKEN;
+                            _owner.CaptureStillPicture();
                         }
                         break;
                     }
 
                 case Camera2BasicFragment.STATE_PICTURE_TAKEN:
-                    // owner.Finish();
                     break;
             }
         }
+
+        private readonly Camera2BasicFragment _owner;
     }
 }

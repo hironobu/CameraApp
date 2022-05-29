@@ -1,49 +1,48 @@
+#nullable enable
+
 using Android.Hardware.Camera2;
 
 namespace CameraApp.Listeners
 {
     public class CameraCaptureSessionCallback : CameraCaptureSession.StateCallback
     {
-        private readonly Camera2BasicFragment owner;
-
         public CameraCaptureSessionCallback(Camera2BasicFragment owner)
         {
-            if (owner == null)
-                throw new System.ArgumentNullException("owner");
-            this.owner = owner;
+            _owner = owner;
         }
 
         public override void OnConfigureFailed(CameraCaptureSession session)
         {
-            owner.ShowToast("Failed");
+            _owner.ShowToast("Failed");
         }
 
         public override void OnConfigured(CameraCaptureSession session)
         {
             // The camera is already closed
-            if (null == owner._cameraDevice)
+            if (_owner._cameraDevice == null)
             {
                 return;
             }
 
             // When the session is ready, we start displaying the preview.
-            owner._captureSession = session;
+            _owner._captureSession = session;
             try
             {
                 // Auto focus should be continuous for camera preview.
-                owner._previewRequestBuilder.Set(CaptureRequest.ControlAfMode, (int)ControlAFMode.ContinuousPicture);
+                _owner._previewRequestBuilder.Set(CaptureRequest.ControlAfMode!, (int)ControlAFMode.ContinuousPicture);
                 // Flash is automatically enabled when necessary.
-                owner.SetAutoFlash(owner._previewRequestBuilder);
+                _owner.SetAutoFlash(_owner._previewRequestBuilder);
 
                 // Finally, we start displaying the camera preview.
-                owner.mPreviewRequest = owner._previewRequestBuilder.Build();
-                owner._captureSession.SetRepeatingRequest(owner.mPreviewRequest,
-                        owner._captureCallback, owner._backgroundHandler);
+                _owner._previewRequest = _owner._previewRequestBuilder.Build();
+                _owner._captureSession.SetRepeatingRequest(_owner._previewRequest, _owner._captureCallback, _owner._backgroundHandler);
             }
             catch (CameraAccessException e)
             {
                 e.PrintStackTrace();
             }
         }
+
+        private readonly Camera2BasicFragment _owner;
     }
 }
