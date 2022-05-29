@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Android;
 using Android.App;
 using Android.Content;
@@ -26,6 +27,7 @@ using Fragment = AndroidX.Fragment.App.Fragment;
 using FragmentCompat = AndroidX.Core.App.ActivityCompat;
 using Math = Java.Lang.Math;
 using Orientation = Android.Content.Res.Orientation;
+using Uri = Android.Net.Uri;
 
 namespace CameraApp
 {
@@ -234,12 +236,15 @@ namespace CameraApp
         public override void OnViewCreated(View view, Bundle savedInstanceState)
         {
             _textureView = view.FindViewById<AutoFitTextureView>(Resource.Id.texture)!;
-            view.FindViewById(Resource.Id.picture)?.SetOnClickListener(this);
+            view.FindViewById(Resource.Id.closeCamera)?.SetOnClickListener(this);
             view.FindViewById(Resource.Id.info)?.SetOnClickListener(this);
 
             _previewOverlayView = Activity.FindViewById<PreviewOverlayView>(Resource.Id.previewOverlayView1)!;
-            _previewOverlayView.AvailableSize = _previewSize;
-
+            if (_previewOverlayView != null)
+            {
+                _previewOverlayView.SetOnClickListener(this);
+                _previewOverlayView.AvailableSize = _previewSize;
+            }
         }
 
         public override void OnActivityCreated(Bundle savedInstanceState)
@@ -284,8 +289,7 @@ namespace CameraApp
             }
             else
             {
-                FragmentCompat.RequestPermissions(Activity, new string[] { Manifest.Permission.Camera },
-                        REQUEST_CAMERA_PERMISSION);
+                FragmentCompat.RequestPermissions(Activity, new[] { Manifest.Permission.Camera }, REQUEST_CAMERA_PERMISSION);
             }
         }
 
@@ -311,6 +315,64 @@ namespace CameraApp
             Activity.Finish();
         }
 
+        public void ProcessOCR()
+        {/*
+            var orientation = BitmapHelpers.GetOrientation(originpath);
+
+            int height = Resources?.DisplayMetrics?.HeightPixels ?? 0;
+            // int width = _imageView.Height;
+            var bitmap = BitmapHelpers.LoadAndResizeBitmap(originpath, 0, height, orientation);
+            var cropHeight = bitmap.Height / 10; // TODO: no heuristic
+            bitmap = Bitmap.CreateBitmap(bitmap, 0, (bitmap.Height - cropHeight) / 2, bitmap.Width, cropHeight);
+            if (bitmap != null)
+            {
+                // _imageView.SetImageBitmap(bitmap);
+
+                var resizedPath = System.IO.Path.ChangeExtension(originpath, ".resized.jpg");
+                BitmapHelpers.ExportBitmapAsJpeg(bitmap, resizedPath);
+
+                {
+                    var f = new System.IO.FileInfo(resizedPath);
+                    System.Diagnostics.Debug.WriteLine($"{bitmap.Width}, {bitmap.Height}, {f.Length}");
+                }
+
+                ProcessOCR(resizedPath);
+            }*/
+            if (_file == null)
+            {
+                return;
+            }
+            var originpath = _file.Path;
+
+            var orientation = BitmapHelpers.GetOrientation(originpath);
+
+            // int height = Resources?.DisplayMetrics?.HeightPixels ?? 0;
+            // int width = _imageView.Height;
+            var bitmap = BitmapHelpers.LoadAndResizeBitmap(originpath, 0, 0, orientation);
+            var cropHeight = bitmap.Height / 10; // TODO: no heuristic
+            bitmap = Bitmap.CreateBitmap(bitmap, 0, (bitmap.Height - cropHeight) / 2, bitmap.Width, cropHeight);
+            if (bitmap != null)
+            {
+                var resizedPath = System.IO.Path.ChangeExtension(originpath, ".resized.jpg");
+                BitmapHelpers.ExportBitmapAsJpeg(bitmap, resizedPath);
+
+                {
+                    var f = new System.IO.FileInfo(resizedPath);
+                    System.Diagnostics.Debug.WriteLine($"{bitmap.Width}, {bitmap.Height}, {f.Length}");
+                }
+
+                Task.Run(async () =>
+                {
+                    var ocrtext = await new VisionClient(Constants.AzureComputerVisionApiKey, Constants.AzureComputerVisionEndpoint).ProcessFileAsync(resizedPath);
+
+                    var intent = new Intent();
+                    intent.PutExtra("file", originpath);
+                    intent.PutExtra("ocrtext", ocrtext);
+                    Activity.SetResult(0, intent);
+                    Activity.RunOnUiThread(() => { ShowToast($"result: {ocrtext}"); });
+                });
+            }
+        }
 
         // Sets up member variables related to camera.
         private void SetUpCameraOutputs(int width, int height)
@@ -731,10 +793,14 @@ namespace CameraApp
                 return;
             }
 
-            if (v.Id == Resource.Id.picture)
+            if (v.Id == Resource.Id.previewOverlayView1)
             {
                 TakePicture();
-                // Activity.Finish();
+            }
+            else if (v.Id == Resource.Id.closeCamera)
+            {
+                //TakePicture();
+                Activity.Finish();
             }
             else if (v.Id == Resource.Id.info)
             {

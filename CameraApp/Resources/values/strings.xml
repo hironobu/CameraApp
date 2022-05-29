@@ -2,7 +2,7 @@
     <string name="app_name">CameraApp</string>
     <string name="action_settings">Settings</string>
     <string name="openCamera">Open Camera</string>
-    <string name="picture">Picture</string>
+    <string name="closeCamera">Close Camera</string>
     <string name="description">description</string>
     <string name="description_info">Info</string>
     <string name="request_permission">This sample needs camera permission.</string>

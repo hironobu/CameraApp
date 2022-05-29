@@ -27,10 +27,7 @@ namespace CameraApp.Listeners
             Log.Debug(TAG, _owner._file.ToString());
             _owner.UnlockFocus();
 
-            var intent = new Intent();
-            intent.PutExtra("file", _owner._file.ToString());
-            _owner.Activity.SetResult(0, intent);
-            _owner.Finish();
+            _owner.ProcessOCR();
         }
 
         private readonly Camera2BasicFragment _owner;

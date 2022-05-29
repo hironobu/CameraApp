@@ -34,9 +34,10 @@ namespace CameraApp
 
                 var button = FindViewById<Button>(Resource.Id.myButton);
                 _imageView = FindViewById<ImageView>(Resource.Id.imageView1);
+                _textView = FindViewById<TextView>(Resource.Id.textView1);
                 if (button != null)
                 {
-                    button.Click += TakeAPicture;
+                    button.Click += OpenCameraActivity;
                 }
             }
         }
@@ -57,7 +58,7 @@ namespace CameraApp
             return availableActivities != null && availableActivities.Count > 0;
         }
 
-        private void TakeAPicture(object sender, EventArgs eventArgs)
+        private void OpenCameraActivity(object sender, EventArgs eventArgs)
         {
 #if false
             Context context = Application.Context;
@@ -81,20 +82,27 @@ namespace CameraApp
             StartActivityForResult(intent, 0);
         }
 
-        private void ProcessOCR(string path)
-        {
-            Task.Run(() => new VisionClient(Constants.AzureComputerVisionApiKey, Constants.AzureComputerVisionEndpoint).ProcessFileAsync(path));
-        }
-
         protected override void OnActivityResult(int requestCode, Result resultCode, Intent? data)
         {
             base.OnActivityResult(requestCode, resultCode, data);
 
-            if (_imageView == null)
+            if (_imageView == null || _textView == null)
             {
                 return;
             }
 
+            var ocrtext = data?.GetStringExtra("ocrtext");
+            if (ocrtext == null)
+            {
+                return;
+            }
+            var file = data?.GetStringExtra("file");
+            if (file == null)
+            {
+                return;
+            }
+
+            /*
             // Make it available in the gallery
             var file = data?.GetStringExtra("file");
             if (file == null)
@@ -118,7 +126,7 @@ namespace CameraApp
             // Display in ImageView. We will resize the bitmap to fit the display.
             // Loading the full sized image will consume to much memory
             // and cause the application to crash.
-            var orientation = BitmapHelpers.GetOrientation(contentUri);
+            var orientation = BitmapHelpers.GetOrientation(file);
 
             int height = Resources?.DisplayMetrics?.HeightPixels ?? 0;
             int width = _imageView.Height;
@@ -138,7 +146,16 @@ namespace CameraApp
                 }
 
                 ProcessOCR(resizedPath);
-            }
+            }*/
+
+            var orientation = BitmapHelpers.GetOrientation(file);
+
+            int height = Resources?.DisplayMetrics?.HeightPixels ?? 0;
+            int width = _imageView.Height;
+            var bitmap = BitmapHelpers.LoadAndResizeBitmap(file, width, height, orientation);
+
+            _imageView.SetImageBitmap(bitmap);
+            _textView.Text = ocrtext;
 
             // Dispose of the Java side bitmap.
             GC.Collect();
@@ -168,5 +185,6 @@ namespace CameraApp
         }
 
         private ImageView? _imageView;
+        private TextView? _textView;
     }
 }

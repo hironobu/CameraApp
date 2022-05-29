@@ -41,9 +41,9 @@ namespace CameraApp
                 throw new NotSupportedException("BitmapFactory.DecodeFile() failed");
             }
 
-            var resizedBitmap = ScaleBitmap(bitmap, width, height);
+            // var resizedBitmap = ScaleBitmap(bitmap, width, height);
 
-            var rotatedBitmap = RotateBitmap(resizedBitmap, OrientationToDegree(orientation));
+            var rotatedBitmap = RotateBitmap(bitmap, OrientationToDegree(orientation));
 
             return rotatedBitmap;
         }
@@ -118,16 +118,11 @@ namespace CameraApp
             return imageBitmap;
         }
 
-        public static Orientation GetOrientation(Uri uri)
+        public static Orientation GetOrientation(string filename)
         {
-            if (uri.Path == null)
-            {
-                throw new ArgumentException("uri.Path invalid");
-            }
-
             try
             {
-                var exifInterface = new ExifInterface(uri.Path);
+                var exifInterface = new ExifInterface(filename);
                 return (Orientation)exifInterface.GetAttributeInt(ExifInterface.TagOrientation, -1);
             }
             catch (Exception e)
@@ -149,7 +144,7 @@ namespace CameraApp
 
             var parcelFileDescriptor = context.ContentResolver?.OpenFileDescriptor(uri, "r");
 
-            var orientation = GetOrientation(uri);
+            var orientation = GetOrientation(file.Path);
 
             parcelFileDescriptor?.Close();
 
