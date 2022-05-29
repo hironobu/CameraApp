@@ -20,7 +20,7 @@ namespace CameraApp.Listeners
             if (reader != null)
             {
                 var image = reader.AcquireNextImage();
-                if (image != null)
+                if (image != null && _owner._backgroundHandler != null)
                 {
                     _owner._backgroundHandler.Post(new ImageSaver(image, _file));
                 }

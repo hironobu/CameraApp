@@ -1,6 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
+﻿#nullable enable
+
+using System;
 using System.Linq;
+using System.Threading.Tasks;
 using Android.App;
 using Android.Content;
 using Android.Content.PM;
@@ -12,23 +14,15 @@ using Android.Provider;
 using Android.Widget;
 using Java.IO;
 using Java.Lang;
+using Environment = Android.OS.Environment;
 using Uri = Android.Net.Uri;
 
 namespace CameraApp
 {
-    public static class App
-    {
-        public static File _file;
-        public static File _dir;
-        public static Bitmap bitmap;
-    }
-
     [Activity(Label = "@string/app_name", Theme = "@style/AppTheme.NoActionBar", MainLauncher = true)]
     public class MainActivity : Activity
     {
-        private ImageView _imageView;
-
-        protected override void OnCreate(Bundle savedInstanceState)
+        protected override void OnCreate(Bundle? savedInstanceState)
         {
             base.OnCreate(savedInstanceState);
             Xamarin.Essentials.Platform.Init(this, savedInstanceState);
@@ -38,29 +32,28 @@ namespace CameraApp
             {
                 CreateDirectoryForPictures();
 
-                Button button = FindViewById<Button>(Resource.Id.myButton);
+                var button = FindViewById<Button>(Resource.Id.myButton);
                 _imageView = FindViewById<ImageView>(Resource.Id.imageView1);
-                button.Click += TakeAPicture;
+                if (button != null)
+                {
+                    button.Click += TakeAPicture;
+                }
             }
-
         }
 
         private void CreateDirectoryForPictures()
         {
-            App._dir = new File(
-                Android.OS.Environment.GetExternalStoragePublicDirectory(
-                    Android.OS.Environment.DirectoryPictures), "CameraAppDemo");
-            if (!App._dir.Exists())
+            var dir = new File(GetExternalFilesDir(Environment.DirectoryPictures), "CameraAppDemo");
+            if (!dir.Exists())
             {
-                App._dir.Mkdirs();
+                dir.Mkdirs();
             }
         }
 
         private bool IsThereAnAppToTakePictures()
         {
-            Intent intent = new Intent(MediaStore.ActionImageCapture);
-            IList<ResolveInfo> availableActivities =
-                PackageManager.QueryIntentActivities(intent, PackageInfoFlags.MatchDefaultOnly);
+            var intent = new Intent(MediaStore.ActionImageCapture);
+            var availableActivities = PackageManager?.QueryIntentActivities(intent, PackageInfoFlags.MatchDefaultOnly);
             return availableActivities != null && availableActivities.Count > 0;
         }
 
@@ -90,27 +83,36 @@ namespace CameraApp
 
         private void ProcessOCR(string path)
         {
-            new VisionClient(Constants.AzureComputerVisionApiKey, Constants.AzureComputerVisionEndpoint).ProcessFile(path);
+            Task.Run(() => new VisionClient(Constants.AzureComputerVisionApiKey, Constants.AzureComputerVisionEndpoint).ProcessFileAsync(path));
         }
 
-        protected override void OnActivityResult(int requestCode, Result resultCode, Intent data)
+        protected override void OnActivityResult(int requestCode, Result resultCode, Intent? data)
         {
             base.OnActivityResult(requestCode, resultCode, data);
 
+            if (_imageView == null)
+            {
+                return;
+            }
+
             // Make it available in the gallery
-            var file = data.GetStringExtra("file");
+            var file = data?.GetStringExtra("file");
             if (file == null)
             {
                 return;
             }
 
-            Uri contentUri = Uri.FromFile(new File(file));
+            var contentUri = Uri.FromFile(new File(file));
+            if (contentUri == null || contentUri.Path == null)
+            {
+                return;
+            }
 
             // 標準ギャラリーにスキャンさせる
             MediaScannerConnection.ScanFile( // API Level 8
                     this, // Context
-                    new string[] { contentUri.Path },
-                    new string[] { "image/jpeg" },
+                    new [] { contentUri.Path },
+                    new [] { "image/jpeg" },
                     null);
 
             // Display in ImageView. We will resize the bitmap to fit the display.
@@ -118,7 +120,7 @@ namespace CameraApp
             // and cause the application to crash.
             var orientation = BitmapHelpers.GetOrientation(contentUri);
 
-            int height = Resources.DisplayMetrics.HeightPixels;
+            int height = Resources?.DisplayMetrics?.HeightPixels ?? 0;
             int width = _imageView.Height;
             var bitmap = BitmapHelpers.LoadAndResizeBitmap(file, width, height, orientation);
             var cropHeight = bitmap.Height / 10; // TODO: no heuristic
@@ -144,20 +146,27 @@ namespace CameraApp
 
         public void Diagnostics()
         {
-            CameraManager cameraManager = (CameraManager)GetSystemService(CameraService);
+            var cameraManager = (CameraManager?)GetSystemService(CameraService);
+            if (cameraManager == null)
+            {
+                return;
+            }
+
             var selectedCameraId = cameraManager.GetCameraIdList().First();
             CameraCharacteristics characteristics = cameraManager.GetCameraCharacteristics(selectedCameraId);
-            Integer sensorOrientation = (Integer)characteristics.Get(CameraCharacteristics.SensorOrientation);
+            var sensorOrientation = (Integer?)characteristics.Get(CameraCharacteristics.SensorOrientation);
 
             System.Diagnostics.Debug.WriteLine(sensorOrientation);
 
-            var rotation = WindowManager.DefaultDisplay.Rotation;
+            var rotation = WindowManager?.DefaultDisplay?.Rotation;
 
             System.Diagnostics.Debug.WriteLine(rotation);
 
-            var orientation = Resources.Configuration.Orientation;
+            var orientation = Resources?.Configuration?.Orientation;
 
             System.Diagnostics.Debug.WriteLine(orientation);
         }
+
+        private ImageView? _imageView;
     }
 }

@@ -17,7 +17,7 @@ namespace CameraApp
             _endpoint = endpoint;
         }
 
-        public async Task<string> ProcessFile(string filePath)
+        public async Task<string> ProcessFileAsync(string filePath)
         {
             ComputerVisionClient client = Authenticate(_endpoint, _subscriptionKey);
 

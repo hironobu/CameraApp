@@ -19,7 +19,7 @@ namespace CameraApp.Listeners
         public override void OnConfigured(CameraCaptureSession session)
         {
             // The camera is already closed
-            if (_owner._cameraDevice == null)
+            if (_owner._cameraDevice == null || _owner._previewRequestBuilder == null)
             {
                 return;
             }

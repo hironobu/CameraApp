@@ -1,11 +1,10 @@
-﻿using System;
+﻿#nullable enable
+
+using System;
 using System.IO;
 using Android.Content;
 using Android.Graphics;
 using Android.Media;
-using Android.OS;
-using Android.Views;
-using Java.IO;
 using Uri = Android.Net.Uri;
 
 namespace CameraApp
@@ -36,11 +35,15 @@ namespace CameraApp
             // Now we will load the image and have BitmapFactory resize it for us.
             options.InSampleSize = inSampleSize;
             options.InJustDecodeBounds = false;
-            Bitmap bitmap = BitmapFactory.DecodeFile(fileName, options);
+            var bitmap = BitmapFactory.DecodeFile(fileName, options);
+            if (bitmap == null)
+            {
+                throw new NotSupportedException("BitmapFactory.DecodeFile() failed");
+            }
 
             var resizedBitmap = ScaleBitmap(bitmap, width, height);
 
-            var rotatedBitmap = RotateImage(resizedBitmap, OrientationToDegree(orientation));
+            var rotatedBitmap = RotateBitmap(resizedBitmap, OrientationToDegree(orientation));
 
             return rotatedBitmap;
         }
@@ -75,20 +78,19 @@ namespace CameraApp
 
         public static Bitmap CreateBitmapFromUri(Context context, Uri uri)
         {
-            ContentResolver contentResolver = context.ContentResolver;
+            var contentResolver = context.ContentResolver;
             BitmapFactory.Options imageOptions;
-            Bitmap imageBitmap = null;
+            Bitmap? imageBitmap;
 
-            // メモリ上に画像を読み込まず、画像サイズ情報のみを取得する
             try
             {
-                var inputStream = contentResolver.OpenInputStream(uri);
+                var inputStream = contentResolver?.OpenInputStream(uri);
                 imageOptions = new BitmapFactory.Options();
                 imageOptions.InJustDecodeBounds = true;
                 BitmapFactory.DecodeStream(inputStream, null, imageOptions);
-                inputStream.Close();
-                // もし読み込む画像が大きかったら縮小して読み込む
-                inputStream = contentResolver.OpenInputStream(uri);
+                inputStream?.Close();
+
+                inputStream = contentResolver?.OpenInputStream(uri);
                 if (imageOptions.OutWidth > 2048 && imageOptions.OutHeight > 2048)
                 {
                     imageOptions = new BitmapFactory.Options();
@@ -99,63 +101,80 @@ namespace CameraApp
                 {
                     imageBitmap = BitmapFactory.DecodeStream(inputStream, null, null);
                 }
-                inputStream.Close();
+                inputStream?.Close();
             }
             catch (Exception e)
             {
                 System.Diagnostics.Debug.WriteLine(e.StackTrace);
+
+                throw e;
             }
+
+            if (imageBitmap == null)
+            {
+                throw new NotImplementedException();
+            }
+
             return imageBitmap;
         }
 
         public static Orientation GetOrientation(Uri uri)
         {
-            ExifInterface exifInterface;
+            if (uri.Path == null)
+            {
+                throw new ArgumentException("uri.Path invalid");
+            }
 
             try
             {
-                exifInterface = new ExifInterface(uri.Path);
+                var exifInterface = new ExifInterface(uri.Path);
+                return (Orientation)exifInterface.GetAttributeInt(ExifInterface.TagOrientation, -1);
             }
             catch (Exception e)
             {
                 System.Diagnostics.Debug.WriteLine(e.StackTrace);
                 return default(Orientation);
             }
-
-            return (Orientation)exifInterface.GetAttributeInt(ExifInterface.TagOrientation, -1);
         }
 
-        public static Bitmap RotateImageIfRequired(Context context, Java.IO.File file)
+        public static Bitmap RotateBitmapIfRequired(Context context, Java.IO.File file)
         {
             var uri = Uri.FromFile(file);
             var bitmap = BitmapFactory.DecodeFile(file.Path, new BitmapFactory.Options { });
 
-            ParcelFileDescriptor parcelFileDescriptor = context.ContentResolver.OpenFileDescriptor(uri, "r");
-            var fileDescriptor = parcelFileDescriptor.FileDescriptor;
+            if (uri == null || bitmap == null)
+            {
+                throw new NotSupportedException();
+            }
 
-            ExifInterface ei = new ExifInterface(fileDescriptor);
+            var parcelFileDescriptor = context.ContentResolver?.OpenFileDescriptor(uri, "r");
+
             var orientation = GetOrientation(uri);
 
-            parcelFileDescriptor.Close();
+            parcelFileDescriptor?.Close();
 
             switch (orientation)
             {
                 case Orientation.Rotate90:
-                    return RotateImage(bitmap, 90);
+                    return RotateBitmap(bitmap, 90);
                 case Orientation.Rotate180:
-                    return RotateImage(bitmap, 180);
+                    return RotateBitmap(bitmap, 180);
                 case Orientation.Rotate270:
-                    return RotateImage(bitmap, 270);
+                    return RotateBitmap(bitmap, 270);
                 default:
                     return bitmap;
             }
         }
 
-        private static Bitmap RotateImage(Bitmap bitmap, int degree)
+        private static Bitmap RotateBitmap(Bitmap bitmap, int degree)
         {
-            Matrix matrix = new Matrix();
+            var matrix = new Matrix();
             matrix.PostRotate(degree);
-            Bitmap rotatedImg = Bitmap.CreateBitmap(bitmap, 0, 0, bitmap.Width, bitmap.Height, matrix, true);
+            var rotatedImg = Bitmap.CreateBitmap(bitmap, 0, 0, bitmap.Width, bitmap.Height, matrix, true);
+            if (rotatedImg == null)
+            {
+                throw new NotImplementedException();
+            }
             //bitmap.Recycle();
             return rotatedImg;
         }
@@ -173,7 +192,13 @@ namespace CameraApp
                 factor = (double)height / bitmap.Height;
             }
 
-            return Bitmap.CreateScaledBitmap(bitmap, (int)(bitmap.Width * factor), (int)(bitmap.Height * factor), true);
+            var scaledBitmap = Bitmap.CreateScaledBitmap(bitmap, (int)(bitmap.Width * factor), (int)(bitmap.Height * factor), true);
+            if (scaledBitmap == null)
+            {
+                throw new NotImplementedException();
+            }
+
+            return scaledBitmap;
         }
 
         private static int OrientationToDegree(Orientation orientation)

@@ -1,5 +1,6 @@
 #nullable enable
 
+using System;
 using Android.Content;
 using Android.Hardware.Camera2;
 using Android.Util;
@@ -17,14 +18,17 @@ namespace CameraApp.Listeners
 
         public override void OnCaptureCompleted(CameraCaptureSession session, CaptureRequest request, TotalCaptureResult result)
         {
-            // If something goes wrong with the save (or the handler isn't even 
-            // registered, this code will toast a success message regardless...)
-            _owner.ShowToast("Saved: " + _owner.mFile);
-            Log.Debug(TAG, _owner.mFile.ToString());
+            if (_owner._file == null)
+            {
+                throw new NotImplementedException();
+            }
+
+            _owner.ShowToast("Saved: " + _owner._file);
+            Log.Debug(TAG, _owner._file.ToString());
             _owner.UnlockFocus();
 
             var intent = new Intent();
-            intent.PutExtra("file", _owner.mFile.ToString());
+            intent.PutExtra("file", _owner._file.ToString());
             _owner.Activity.SetResult(0, intent);
             _owner.Finish();
         }
