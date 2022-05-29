@@ -9,6 +9,7 @@ using Android.Hardware.Camera2;
 using Android.Media;
 using Android.OS;
 using Android.Provider;
+using Android.Util;
 using Android.Widget;
 using AndroidX.Core.Content;
 using AndroidX.Fragment.App;
@@ -119,24 +120,25 @@ namespace CameraApp
             // Loading the full sized image will consume to much memory
             // and cause the application to crash.
             var orientation = BitmapHelpers.GetOrientation(contentUri);
-            System.Diagnostics.Debug.WriteLine(orientation);
 
             int height = Resources.DisplayMetrics.HeightPixels;
             int width = _imageView.Height;
             var bitmap = BitmapHelpers.LoadAndResizeBitmap(file, width, height, orientation);
+            var cropHeight = bitmap.Height / 10; // TODO: no heuristic
+            bitmap = Bitmap.CreateBitmap(bitmap, 0, (bitmap.Height - cropHeight) / 2, bitmap.Width, cropHeight);
             if (bitmap != null)
             {
                 _imageView.SetImageBitmap(bitmap);
 
-                var pngpath = System.IO.Path.ChangeExtension(file, ".resized.jpg");
-                BitmapHelpers.ExportBitmapAsJpeg(bitmap, pngpath);
+                var resizedPath = System.IO.Path.ChangeExtension(file, ".resized.jpg");
+                BitmapHelpers.ExportBitmapAsJpeg(bitmap, resizedPath);
 
                 {
-                    var f = new System.IO.FileInfo(pngpath);
-                    System.Diagnostics.Debug.WriteLine($"{width}, {height}, {f.Length}");
+                    var f = new System.IO.FileInfo(resizedPath);
+                    System.Diagnostics.Debug.WriteLine($"{bitmap.Width}, {bitmap.Height}, {f.Length}");
                 }
 
-                ProcessOCR(pngpath);
+                ProcessOCR(resizedPath);
             }
 
             // Dispose of the Java side bitmap.

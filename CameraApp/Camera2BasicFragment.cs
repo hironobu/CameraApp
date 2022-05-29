@@ -26,7 +26,12 @@ using AndroidX.Core.Content;
 
 namespace CameraApp
 {
-    public class Camera2BasicFragment : Fragment, View.IOnClickListener, FragmentCompat.IOnRequestPermissionsResultCallback
+    public interface IPreviewSizeCallback
+    {
+        public void PreviewSizeUpdated(Size previewSize);
+    }
+
+    public class Camera2BasicFragment : Fragment, View.IOnClickListener, FragmentCompat.IOnRequestPermissionsResultCallback, IPreviewSizeCallback
     {
         private static readonly SparseIntArray ORIENTATIONS = new SparseIntArray();
         public static readonly int REQUEST_CAMERA_PERMISSION = 1;
@@ -72,7 +77,7 @@ namespace CameraApp
         public CameraDevice mCameraDevice;
 
         // The size of the camera preview
-        private Size mPreviewSize;
+        private Size _previewSize;
 
         // CameraDevice.StateListener is called when a CameraDevice changes its state
         private CameraStateListener mStateCallback;
@@ -113,6 +118,8 @@ namespace CameraApp
 
         // A {@link CameraCaptureSession.CaptureCallback} that handles events related to JPEG capture.
         public CameraCaptureListener mCaptureCallback;
+
+        public IPreviewSizeCallback mPreviewSizeCallback;
 
         // Shows a {@link Toast} on the UI thread.
         public void ShowToast(string text)
@@ -201,6 +208,9 @@ namespace CameraApp
             ORIENTATIONS.Append((int)SurfaceOrientation.Rotation90, 0);
             ORIENTATIONS.Append((int)SurfaceOrientation.Rotation180, 270);
             ORIENTATIONS.Append((int)SurfaceOrientation.Rotation270, 180);
+
+
+            mPreviewSizeCallback = this;
         }
 
         public override View OnCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState)
@@ -213,6 +223,11 @@ namespace CameraApp
             mTextureView = (AutoFitTextureView)view.FindViewById(Resource.Id.texture);
             view.FindViewById(Resource.Id.picture).SetOnClickListener(this);
             view.FindViewById(Resource.Id.info).SetOnClickListener(this);
+
+            _textureView = Activity.FindViewById<AutoFitTextureView>(Resource.Id.texture);
+            _previewOverlayView = Activity.FindViewById<PreviewOverlayView>(Resource.Id.previewOverlayView1);
+            _previewOverlayView.AvailableSize = _previewSize;
+
         }
 
         public override void OnActivityCreated(Bundle savedInstanceState)
@@ -371,7 +386,7 @@ namespace CameraApp
                     // Danger, W.R.! Attempting to use too large a preview size could  exceed the camera
                     // bus' bandwidth limitation, resulting in gorgeous previews but the storage of
                     // garbage capture data.
-                    mPreviewSize = ChooseOptimalSize(map.GetOutputSizes(Class.FromType(typeof(SurfaceTexture))),
+                    _previewSize = ChooseOptimalSize(map.GetOutputSizes(Class.FromType(typeof(SurfaceTexture))),
                         rotatedPreviewWidth, rotatedPreviewHeight, maxPreviewWidth,
                         maxPreviewHeight, largest);
 
@@ -379,11 +394,15 @@ namespace CameraApp
                     var orientation = Resources.Configuration.Orientation;
                     if (orientation == Orientation.Landscape)
                     {
-                        mTextureView.SetAspectRatio(mPreviewSize.Width, mPreviewSize.Height);
+                        mPreviewSizeCallback?.PreviewSizeUpdated(_previewSize);
+
+                        mTextureView.SetAspectRatio(_previewSize.Width, _previewSize.Height);
                     }
                     else
                     {
-                        mTextureView.SetAspectRatio(mPreviewSize.Height, mPreviewSize.Width);
+                        mPreviewSizeCallback?.PreviewSizeUpdated(new Size(_previewSize.Height, _previewSize.Width));
+
+                        mTextureView.SetAspectRatio(_previewSize.Height, _previewSize.Width);
                     }
 
                     // Check if the flash is supported.
@@ -512,7 +531,7 @@ namespace CameraApp
                 }
 
                 // We configure the size of default buffer to be the size of camera preview we want.
-                texture.SetDefaultBufferSize(mPreviewSize.Width, mPreviewSize.Height);
+                texture.SetDefaultBufferSize(_previewSize.Width, _previewSize.Height);
 
                 // This is the output Surface we need to start preview.
                 Surface surface = new Surface(texture);
@@ -548,21 +567,21 @@ namespace CameraApp
         public void ConfigureTransform(int viewWidth, int viewHeight)
         {
             Activity activity = Activity;
-            if (null == mTextureView || null == mPreviewSize || null == activity)
+            if (null == mTextureView || null == _previewSize || null == activity)
             {
                 return;
             }
             var rotation = (int)activity.WindowManager.DefaultDisplay.Rotation;
             Matrix matrix = new Matrix();
             RectF viewRect = new RectF(0, 0, viewWidth, viewHeight);
-            RectF bufferRect = new RectF(0, 0, mPreviewSize.Height, mPreviewSize.Width);
+            RectF bufferRect = new RectF(0, 0, _previewSize.Height, _previewSize.Width);
             float centerX = viewRect.CenterX();
             float centerY = viewRect.CenterY();
             if ((int)SurfaceOrientation.Rotation90 == rotation || (int)SurfaceOrientation.Rotation270 == rotation)
             {
                 bufferRect.Offset(centerX - bufferRect.CenterX(), centerY - bufferRect.CenterY());
                 matrix.SetRectToRect(viewRect, bufferRect, Matrix.ScaleToFit.Fill);
-                float scale = Math.Max((float)viewHeight / mPreviewSize.Height, (float)viewWidth / mPreviewSize.Width);
+                float scale = Math.Max((float)viewHeight / _previewSize.Height, (float)viewWidth / _previewSize.Width);
                 matrix.PostScale(scale, scale, centerX, centerY);
                 matrix.PostRotate(90 * (rotation - 2), centerX, centerY);
             }
@@ -713,6 +732,19 @@ namespace CameraApp
                 requestBuilder.Set(CaptureRequest.ControlAeMode, (int)ControlAEMode.OnAutoFlash);
             }
         }
+
+
+        public void PreviewSizeUpdated(Size previewSize)
+        {
+            if (_previewOverlayView != null)
+            {
+                _previewOverlayView.AvailableSize = previewSize;
+            }
+        }
+
+
+        private AutoFitTextureView _textureView;
+        private PreviewOverlayView _previewOverlayView;
     }
 }
 

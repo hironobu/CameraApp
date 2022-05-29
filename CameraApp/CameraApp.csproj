@@ -75,6 +75,7 @@
     <Compile Include="Camera2BasicFragment.cs" />
     <Compile Include="CompareSizesByArea.cs" />
     <Compile Include="AutoFitTextureView.cs" />
+    <Compile Include="PreviewOverlayView.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\AboutResources.txt" />

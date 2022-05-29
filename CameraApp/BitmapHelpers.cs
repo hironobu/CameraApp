@@ -24,17 +24,21 @@ namespace CameraApp
             int outWidth = options.OutWidth;
             int inSampleSize = 1;
 
+#if false
             if (outHeight > height || outWidth > width)
             {
                 inSampleSize = outWidth > outHeight
                                    ? outHeight / height
                                    : outWidth / width;
             }
+#endif
 
             // Now we will load the image and have BitmapFactory resize it for us.
             options.InSampleSize = inSampleSize;
             options.InJustDecodeBounds = false;
-            Bitmap resizedBitmap = BitmapFactory.DecodeFile(fileName, options);
+            Bitmap bitmap = BitmapFactory.DecodeFile(fileName, options);
+
+            var resizedBitmap = ScaleBitmap(bitmap, width, height);
 
             var rotatedBitmap = RotateImage(resizedBitmap, OrientationToDegree(orientation));
 
@@ -154,6 +158,22 @@ namespace CameraApp
             Bitmap rotatedImg = Bitmap.CreateBitmap(bitmap, 0, 0, bitmap.Width, bitmap.Height, matrix, true);
             //bitmap.Recycle();
             return rotatedImg;
+        }
+
+        private static Bitmap ScaleBitmap(Bitmap bitmap, int width, int height)
+        {
+            double factor;
+
+            if (bitmap.Width >= bitmap.Height)
+            {
+                factor = (double)width / bitmap.Width;
+            }
+            else
+            {
+                factor = (double)height / bitmap.Height;
+            }
+
+            return Bitmap.CreateScaledBitmap(bitmap, (int)(bitmap.Width * factor), (int)(bitmap.Height * factor), true);
         }
 
         private static int OrientationToDegree(Orientation orientation)
