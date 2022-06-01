@@ -2,7 +2,7 @@
 
 using Android.Hardware.Camera2;
 
-namespace CameraApp.Listeners
+namespace AzureCVCamera.Listeners
 {
     public class CameraCaptureSessionCallback : CameraCaptureSession.StateCallback
     {

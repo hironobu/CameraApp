@@ -3,7 +3,7 @@
 using Android.Views;
 using Android.Graphics;
 
-namespace CameraApp.Listeners
+namespace AzureCVCamera.Listeners
 {
     public class Camera2BasicSurfaceTextureListener : Java.Lang.Object, TextureView.ISurfaceTextureListener
     {

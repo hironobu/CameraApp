@@ -5,7 +5,7 @@ using Android.Media;
 using Java.IO;
 using Java.Lang;
 
-namespace CameraApp.Listeners
+namespace AzureCVCamera.Listeners
 {
     public class ImageAvailableListener : Java.Lang.Object, ImageReader.IOnImageAvailableListener
     {

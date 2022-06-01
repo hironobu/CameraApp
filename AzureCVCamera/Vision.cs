@@ -7,11 +7,11 @@ using System.Threading.Tasks;
 using Microsoft.Azure.CognitiveServices.Vision.ComputerVision;
 using Microsoft.Azure.CognitiveServices.Vision.ComputerVision.Models;
 
-namespace CameraApp
+namespace AzureCVCamera
 {
-    class VisionClient
+    class AzureCVClient
     {
-        public VisionClient(string apiKey, string endpoint)
+        public AzureCVClient(string apiKey, string endpoint)
         {
             _subscriptionKey = apiKey;
             _endpoint = endpoint;

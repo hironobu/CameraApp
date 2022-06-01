@@ -17,7 +17,7 @@ using Android.Views;
 using Android.Widget;
 using AndroidX.Core.Content;
 using AndroidX.Fragment.App;
-using CameraApp.Listeners;
+using AzureCVCamera.Listeners;
 using Java.IO;
 using Java.Lang;
 using Java.Util;
@@ -29,7 +29,7 @@ using Math = Java.Lang.Math;
 using Orientation = Android.Content.Res.Orientation;
 using Uri = Android.Net.Uri;
 
-namespace CameraApp
+namespace AzureCVCamera
 {
     [Activity(Label = "@string/app_name", Theme = "@style/AppTheme.NoActionBar")]
     public class CameraActivity : FragmentActivity
@@ -363,7 +363,7 @@ namespace CameraApp
 
                 Task.Run(async () =>
                 {
-                    var ocrtext = await new VisionClient(Constants.AzureComputerVisionApiKey, Constants.AzureComputerVisionEndpoint).ProcessFileAsync(resizedPath);
+                    var ocrtext = await new AzureCVClient(Constants.AzureComputerVisionApiKey, Constants.AzureComputerVisionEndpoint).ProcessFileAsync(resizedPath);
 
                     var intent = new Intent();
                     intent.PutExtra("file", originpath);
@@ -440,9 +440,13 @@ namespace CameraApp
                             break;
                     }
 
-                    // var displaySize = new Point();
-                    // activity?.WindowManager?.DefaultDisplay?.GetSize(displaySize);
+#if true
+                    var displaySize = new Point();
+                    activity?.WindowManager?.DefaultDisplay?.GetSize(displaySize);
+                    var bounds = new Rect(0, 0, displaySize.X, displaySize.Y);
+#else
                     var bounds = activity?.WindowManager?.CurrentWindowMetrics.Bounds;
+#endif
                     var rotatedPreviewWidth = width;
                     var rotatedPreviewHeight = height;
                     var maxPreviewWidth = bounds?.Width() ?? default;

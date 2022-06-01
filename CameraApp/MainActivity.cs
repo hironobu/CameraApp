@@ -77,7 +77,7 @@ namespace CameraApp
             Diagnostics();
 #endif
 
-            var intent = new Intent(this, typeof(CameraActivity));
+            var intent = new Intent(this, typeof(AzureCVCamera.CameraActivity));
 
             StartActivityForResult(intent, 0);
         }

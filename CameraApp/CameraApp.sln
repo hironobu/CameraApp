@@ -1,11 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
-VisualStudioVersion = 16.0.810.23
+VisualStudioVersion = 25.0.1700.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CameraApp", "CameraApp\CameraApp.csproj", "{CCDC6822-EE09-48D6-A5CA-68AAA6BB345D}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CameraApp", "CameraApp.csproj", "{CCDC6822-EE09-48D6-A5CA-68AAA6BB345D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AzureCVCamera", "AzureCVCamera\AzureCVCamera.csproj", "{BF8B0252-D094-4013-95B0-0591CD503A41}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AzureCVCamera", "..\AzureCVCamera\AzureCVCamera.csproj", "{BF8B0252-D094-4013-95B0-0591CD503A41}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -26,6 +26,6 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {65A3A31C-16AC-4377-A0CE-94E0EC3EFE62}
+		SolutionGuid = {DD0753C3-00BE-46B5-9EB4-6A8133498EF9}
 	EndGlobalSection
 EndGlobal

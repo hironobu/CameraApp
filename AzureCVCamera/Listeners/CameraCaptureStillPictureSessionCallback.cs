@@ -5,7 +5,7 @@ using Android.Content;
 using Android.Hardware.Camera2;
 using Android.Util;
 
-namespace CameraApp.Listeners
+namespace AzureCVCamera.Listeners
 {
     public class CameraCaptureStillPictureSessionCallback : CameraCaptureSession.CaptureCallback
     {

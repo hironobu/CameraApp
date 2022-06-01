@@ -3,7 +3,7 @@
 using Android.Hardware.Camera2;
 using Java.Lang;
 
-namespace CameraApp.Listeners
+namespace AzureCVCamera.Listeners
 {
     public class CameraCaptureListener : CameraCaptureSession.CaptureCallback
     {

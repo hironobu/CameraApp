@@ -5,7 +5,7 @@ using Android.Content;
 using Android.Util;
 using Android.Views;
 
-namespace CameraApp
+namespace AzureCVCamera
 {
 	public class AutoFitTextureView : TextureView
 	{
