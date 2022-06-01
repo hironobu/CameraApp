@@ -1,6 +1,4 @@
-﻿#nullable enable
-
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Android;
@@ -163,49 +161,6 @@ namespace AzureCVCamera
 
             private string _text;
             private Context _context;
-        }
-
-        private static Size ChooseOptimalSize(Size[] choices, int textureViewWidth, int textureViewHeight, int maxWidth, int maxHeight, Size aspectRatio)
-        {
-            // Collect the supported resolutions that are at least as big as the preview Surface
-            var bigEnough = new List<Size>();
-            // Collect the supported resolutions that are smaller than the preview Surface
-            var notBigEnough = new List<Size>();
-            int w = aspectRatio.Width;
-            int h = aspectRatio.Height;
-
-            for (var i = 0; i < choices.Length; i++)
-            {
-                Size option = choices[i];
-                if ((option.Width <= maxWidth) && (option.Height <= maxHeight) && option.Height == option.Width * h / w)
-                {
-                    if (option.Width >= textureViewWidth &&
-                        option.Height >= textureViewHeight)
-                    {
-                        bigEnough.Add(option);
-                    }
-                    else
-                    {
-                        notBigEnough.Add(option);
-                    }
-                }
-            }
-
-            // Pick the smallest of those big enough. If there is no one big enough, pick the
-            // largest of those not big enough.
-            if (bigEnough.Count > 0)
-            {
-                return (Size)Collections.Min(bigEnough, new ByAreaComparator())!;
-            }
-            else if (notBigEnough.Count > 0)
-            {
-                return (Size)Collections.Max(notBigEnough, new ByAreaComparator())!;
-            }
-            else
-            {
-                Log.Error(TAG, "Couldn't find any suitable preview size");
-                return choices[0];
-            }
         }
 
         public static Camera2BasicFragment NewInstance()
@@ -390,34 +345,23 @@ namespace AzureCVCamera
                 for (var i = 0; i < manager.GetCameraIdList().Length; i++)
                 {
                     var cameraId = manager.GetCameraIdList()[i];
-                    CameraCharacteristics characteristics = manager.GetCameraCharacteristics(cameraId);
+                    // CameraCharacteristics characteristics = manager.GetCameraCharacteristics(cameraId);
 
-                    // We don't use a front facing camera in this sample.
-                    var facing = (Integer)characteristics.Get(CameraCharacteristics.LensFacing)!;
-                    if (facing != null && facing == (Integer.ValueOf((int)LensFacing.Front)))
+                    var cameraDeviceSpec = CameraDeviceSpec.LoadSpec(manager, cameraId);
+
+                    if (cameraDeviceSpec.LensFacing == LensFacing.Front)
                     {
                         continue;
                     }
 
-                    var map = (StreamConfigurationMap?)characteristics.Get(CameraCharacteristics.ScalerStreamConfigurationMap);
-                    if (map == null)
-                    {
-                        continue;
-                    }
-
-                    var largest = (Size?)Collections.Max(Arrays.AsList(map.GetOutputSizes((int)ImageFormatType.Jpeg)!), new ByAreaComparator());
-                    if (largest == null)
-                    {
-                        continue;
-                    }
-                    _imageReader = ImageReader.NewInstance(largest.Width, largest.Height, ImageFormatType.Jpeg, /*maxImages*/2);
-                    _imageReader.SetOnImageAvailableListener(_onImageAvailableListener, _backgroundHandler);
+                    _imageReader = ImageReader.NewInstance(cameraDeviceSpec.LargestSize.Width, cameraDeviceSpec.LargestSize.Height, ImageFormatType.Jpeg, /*maxImages*/2);
+                    _imageReader?.SetOnImageAvailableListener(_onImageAvailableListener, _backgroundHandler);
 
                     // Find out if we need to swap dimension to get the preview size relative to sensor
                     // coordinate.
                     var displayRotation = activity.WindowManager?.DefaultDisplay?.Rotation;
                     //noinspection ConstantConditions
-                    mSensorOrientation = (int)(characteristics?.Get(CameraCharacteristics.SensorOrientation) ?? 0);
+                    mSensorOrientation = cameraDeviceSpec.SensorOrientation;
                     bool swappedDimensions = false;
                     switch (displayRotation)
                     {
@@ -473,9 +417,9 @@ namespace AzureCVCamera
                     // Danger, W.R.! Attempting to use too large a preview size could  exceed the camera
                     // bus' bandwidth limitation, resulting in gorgeous previews but the storage of
                     // garbage capture data.
-                    _previewSize = ChooseOptimalSize(map.GetOutputSizes(Class.FromType(typeof(SurfaceTexture)))!,
+                    _previewSize = cameraDeviceSpec.ChooseOptimalSize(
                         rotatedPreviewWidth, rotatedPreviewHeight, maxPreviewWidth,
-                        maxPreviewHeight, largest);
+                        maxPreviewHeight);
 
                     // We fit the aspect ratio of TextureView to the size of preview we picked.
                     var orientation = Resources.Configuration?.Orientation;
@@ -492,9 +436,8 @@ namespace AzureCVCamera
                         _textureView.SetAspectRatio(_previewSize.Height, _previewSize.Width);
                     }
 
-                    _flashSupported = ((Boolean?)characteristics?.Get(CameraCharacteristics.FlashInfoAvailable))?.BooleanValue() ?? false;
+                    _flashSupported = cameraDeviceSpec.FlashSupported;
                     _cameraId = cameraId;
-                    return;
                 }
             }
             catch (CameraAccessException e)
@@ -851,6 +794,116 @@ namespace AzureCVCamera
 
         private AutoFitTextureView _textureView = default!;
         private PreviewOverlayView _previewOverlayView = default!;
+
+        public class CameraDeviceSpec
+        {
+            private CameraDeviceSpec(StreamConfigurationMap streamConfigurationMap, Size largestSize, LensFacing lensFacing, int sensorOrientation, bool flashSupported)
+            {
+                _streamConfigurationMap = streamConfigurationMap;
+                _largestSize = largestSize;
+                _lensFacing = lensFacing;
+                _sensorOrientation = sensorOrientation;
+                _flashSupported = flashSupported;
+            }
+
+            public Size LargestSize => _largestSize;
+
+            public LensFacing LensFacing => _lensFacing;
+
+            public int SensorOrientation => _sensorOrientation;
+
+            public bool FlashSupported => _flashSupported;
+
+            public Size ChooseOptimalSize(int textureViewWidth, int textureViewHeight, int maxWidth, int maxHeight)
+            {
+                var choices = _streamConfigurationMap.GetOutputSizes(Class.FromType(typeof(SurfaceTexture)));
+                var aspectRatio = _largestSize;
+
+                if (choices == null)
+                {
+                    throw new NotImplementedException("choices is null");
+                }
+
+                // Collect the supported resolutions that are at least as big as the preview Surface
+                var bigEnough = new List<Size>();
+                // Collect the supported resolutions that are smaller than the preview Surface
+                var notBigEnough = new List<Size>();
+                int w = aspectRatio.Width;
+                int h = aspectRatio.Height;
+
+                for (var i = 0; i < choices.Length; i++)
+                {
+                    Size option = choices[i];
+                    if ((option.Width <= maxWidth) && (option.Height <= maxHeight) && option.Height == option.Width * h / w)
+                    {
+                        if (option.Width >= textureViewWidth &&
+                            option.Height >= textureViewHeight)
+                        {
+                            bigEnough.Add(option);
+                        }
+                        else
+                        {
+                            notBigEnough.Add(option);
+                        }
+                    }
+                }
+
+                // Pick the smallest of those big enough. If there is no one big enough, pick the
+                // largest of those not big enough.
+                if (bigEnough.Count > 0)
+                {
+                    return (Size)Collections.Min(bigEnough, new ByAreaComparator())!;
+                }
+                else if (notBigEnough.Count > 0)
+                {
+                    return (Size)Collections.Max(notBigEnough, new ByAreaComparator())!;
+                }
+                else
+                {
+                    Log.Error(TAG, "Couldn't find any suitable preview size");
+                    return choices[0];
+                }
+            }
+
+            private StreamConfigurationMap _streamConfigurationMap;
+            private Size _largestSize;
+            private LensFacing _lensFacing;
+            private int _sensorOrientation;
+            private bool _flashSupported;
+
+            public static CameraDeviceSpec LoadSpec(CameraManager cameraManager, string cameraId)
+            {
+                var characteristics = cameraManager.GetCameraCharacteristics(cameraId);
+                if (characteristics == null)
+                {
+                    throw new NotImplementedException("characteristics is null");
+                }
+
+                var facing = (Integer?)characteristics.Get(CameraCharacteristics.LensFacing);
+                if (facing == null)
+                {
+                    throw new NotImplementedException("facing is null");
+                }
+
+                var streamConfigurationMap = (StreamConfigurationMap?)characteristics.Get(CameraCharacteristics.ScalerStreamConfigurationMap);
+                if (streamConfigurationMap == null)
+                {
+                    throw new NotImplementedException("streamConfigurationMap is null");
+                }
+
+                var largest = (Size?)Collections.Max(streamConfigurationMap.GetOutputSizes((int)ImageFormatType.Jpeg), new ByAreaComparator());
+                if (largest == null)
+                {
+                    throw new NotImplementedException("largest is null");
+                }
+
+                var sensorOrientation = (int)(characteristics?.Get(CameraCharacteristics.SensorOrientation) ?? 0);
+
+                var flashSupported = ((Boolean?)characteristics?.Get(CameraCharacteristics.FlashInfoAvailable))?.BooleanValue() ?? false;
+
+                return new CameraDeviceSpec(streamConfigurationMap, largest, (LensFacing)facing.IntValue(), (int)sensorOrientation, flashSupported);
+            }
+        }
 
         public class ByAreaComparator : Java.Lang.Object, IComparator
         {
