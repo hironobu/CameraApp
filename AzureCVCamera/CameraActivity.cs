@@ -338,15 +338,26 @@ namespace AzureCVCamera
         // Sets up member variables related to camera.
         private void SetUpCameraOutputs(int width, int height)
         {
-            var activity = Activity;
-            var manager = (CameraManager)activity.GetSystemService(Context.CameraService)!;
+            if (Activity == null)
+            {
+                throw new NotImplementedException("Activity is null");
+            }
+
+            var manager = (CameraManager?)Activity.GetSystemService(Context.CameraService);
+            if (manager == null)
+            {
+                throw new NotImplementedException("CameraService is null");
+            }
             try
             {
-                for (var i = 0; i < manager.GetCameraIdList().Length; i++)
+                var cameraIdList = manager.GetCameraIdList();
+                if (cameraIdList == null)
                 {
-                    var cameraId = manager.GetCameraIdList()[i];
-                    // CameraCharacteristics characteristics = manager.GetCameraCharacteristics(cameraId);
+                    throw new NotImplementedException("CameraManager.GetCameraIdList() is null");
+                }
 
+                foreach (var cameraId in cameraIdList)
+                {
                     var cameraDeviceSpec = CameraDeviceSpec.LoadSpec(manager, cameraId);
 
                     if (cameraDeviceSpec.LensFacing == LensFacing.Front)
@@ -357,62 +368,10 @@ namespace AzureCVCamera
                     _imageReader = ImageReader.NewInstance(cameraDeviceSpec.LargestSize.Width, cameraDeviceSpec.LargestSize.Height, ImageFormatType.Jpeg, /*maxImages*/2);
                     _imageReader?.SetOnImageAvailableListener(_onImageAvailableListener, _backgroundHandler);
 
-                    // Find out if we need to swap dimension to get the preview size relative to sensor
-                    // coordinate.
-                    var displayRotation = activity.WindowManager?.DefaultDisplay?.Rotation;
-                    //noinspection ConstantConditions
-                    mSensorOrientation = cameraDeviceSpec.SensorOrientation;
-                    bool swappedDimensions = false;
-                    switch (displayRotation)
-                    {
-                        case SurfaceOrientation.Rotation0:
-                        case SurfaceOrientation.Rotation180:
-                            if (mSensorOrientation == 90 || mSensorOrientation == 270)
-                            {
-                                swappedDimensions = true;
-                            }
-                            break;
-                        case SurfaceOrientation.Rotation90:
-                        case SurfaceOrientation.Rotation270:
-                            if (mSensorOrientation == 0 || mSensorOrientation == 180)
-                            {
-                                swappedDimensions = true;
-                            }
-                            break;
-                        default:
-                            Log.Error(TAG, "Display rotation is invalid: " + displayRotation);
-                            break;
-                    }
+                    var (rotatedPreviewWidth, rotatedPreviewHeight, maxPreviewWidth, maxPreviewHeight) = GetPreviewDimension(cameraDeviceSpec, width, height);
 
-#if true
-                    var displaySize = new Point();
-                    activity?.WindowManager?.DefaultDisplay?.GetSize(displaySize);
-                    var bounds = new Rect(0, 0, displaySize.X, displaySize.Y);
-#else
-                    var bounds = activity?.WindowManager?.CurrentWindowMetrics.Bounds;
-#endif
-                    var rotatedPreviewWidth = width;
-                    var rotatedPreviewHeight = height;
-                    var maxPreviewWidth = bounds?.Width() ?? default;
-                    var maxPreviewHeight = bounds?.Height() ?? default;
-
-                    if (swappedDimensions)
-                    {
-                        rotatedPreviewWidth = height;
-                        rotatedPreviewHeight = width;
-                        maxPreviewWidth = bounds?.Height() ?? default;
-                        maxPreviewHeight = bounds?.Width() ?? default;
-                    }
-
-                    if (maxPreviewWidth > MAX_PREVIEW_WIDTH)
-                    {
-                        maxPreviewWidth = MAX_PREVIEW_WIDTH;
-                    }
-
-                    if (maxPreviewHeight > MAX_PREVIEW_HEIGHT)
-                    {
-                        maxPreviewHeight = MAX_PREVIEW_HEIGHT;
-                    }
+                    maxPreviewWidth = maxPreviewWidth < MAX_PREVIEW_WIDTH ? maxPreviewWidth : MAX_PREVIEW_WIDTH;
+                    maxPreviewHeight = maxPreviewHeight < MAX_PREVIEW_HEIGHT ? maxPreviewHeight : MAX_PREVIEW_HEIGHT;
 
                     // Danger, W.R.! Attempting to use too large a preview size could  exceed the camera
                     // bus' bandwidth limitation, resulting in gorgeous previews but the storage of
@@ -451,6 +410,60 @@ namespace AzureCVCamera
                 // ErrorDialog.NewInstance(GetString(Resource.String.camera_error)).Show(ChildFragmentManager, FRAGMENT_DIALOG);
                 e.PrintStackTrace();
             }
+        }
+
+        private (int, int, int, int) GetPreviewDimension(CameraDeviceSpec cameraDeviceSpec, int width, int height)
+        {
+#if true
+            var displaySize = new Point();
+            Activity.WindowManager?.DefaultDisplay?.GetSize(displaySize);
+            var bounds = new Rect(0, 0, displaySize.X, displaySize.Y);
+#else
+            var bounds = activity?.WindowManager?.CurrentWindowMetrics.Bounds;
+#endif
+
+            // Find out if we need to swap dimension to get the preview size relative to sensor
+            // coordinate.
+            var displayRotation = Activity.WindowManager?.DefaultDisplay?.Rotation ?? default;
+
+            //noinspection ConstantConditions
+            mSensorOrientation = cameraDeviceSpec.SensorOrientation;
+            bool swappedDimensions = false;
+            switch (displayRotation)
+            {
+                case SurfaceOrientation.Rotation0:
+                case SurfaceOrientation.Rotation180:
+                    if (mSensorOrientation == 90 || mSensorOrientation == 270)
+                    {
+                        swappedDimensions = true;
+                    }
+                    break;
+                case SurfaceOrientation.Rotation90:
+                case SurfaceOrientation.Rotation270:
+                    if (mSensorOrientation == 0 || mSensorOrientation == 180)
+                    {
+                        swappedDimensions = true;
+                    }
+                    break;
+                default:
+                    Log.Error(TAG, "Display rotation is invalid: " + displayRotation);
+                    break;
+            }
+
+            var rotatedPreviewWidth = width;
+            var rotatedPreviewHeight = height;
+            var maxPreviewWidth = bounds?.Width() ?? default;
+            var maxPreviewHeight = bounds?.Height() ?? default;
+
+            if (swappedDimensions)
+            {
+                rotatedPreviewWidth = height;
+                rotatedPreviewHeight = width;
+                maxPreviewWidth = bounds?.Height() ?? default;
+                maxPreviewHeight = bounds?.Width() ?? default;
+            }
+
+            return (rotatedPreviewWidth, rotatedPreviewHeight, maxPreviewWidth, maxPreviewHeight);
         }
 
         // Opens the camera specified by {@link Camera2BasicFragment#mCameraId}.
