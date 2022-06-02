@@ -128,33 +128,7 @@ namespace AzureCVCamera
         // A {@link CameraCaptureSession.CaptureCallback} that handles events related to JPEG capture.
         private CameraCaptureListener? _captureCallback;
 
-        public IPreviewSizeCallback? _previewSizeCallback;
-
-        // Shows a {@link Toast} on the UI thread.
-        public void ShowToast(string text)
-        {
-            if (Activity != null && Activity.ApplicationContext != null)
-            {
-                Activity.RunOnUiThread(new ShowToastRunnable(Activity.ApplicationContext, text));
-            }
-        }
-
-        private class ShowToastRunnable : Java.Lang.Object, IRunnable
-        {
-            public ShowToastRunnable(Context context, string text)
-            {
-                this._context = context;
-                this._text = text;
-            }
-
-            public void Run()
-            {
-                Toast.MakeText(_context, _text, ToastLength.Short)?.Show();
-            }
-
-            private string _text;
-            private Context _context;
-        }
+        private IPreviewSizeCallback? _previewSizeCallback;
 
         public static Camera2BasicFragment NewInstance()
         {
@@ -318,9 +292,36 @@ namespace AzureCVCamera
                         _previewOverlayView.Bitmap = null;
                         _previewOverlayView.Color = Color.White;
                         _previewOverlayView.Invalidate();
-                        ShowToast($"result: {ocrtext}");
+                        Activity.ShowToast($"result: {ocrtext}");
                     });
                 });
+            }
+        }
+
+        private void SetUpCaptureSession(CameraCaptureSession session)
+        {
+            // The camera is already closed
+            if (_cameraDevice == null || _previewRequestBuilder == null)
+            {
+                return;
+            }
+
+            // When the session is ready, we start displaying the preview.
+            _captureSession = session;
+            try
+            {
+                // Auto focus should be continuous for camera preview.
+                _previewRequestBuilder.Set(CaptureRequest.ControlAfMode!, (int)ControlAFMode.ContinuousPicture);
+                // Flash is automatically enabled when necessary.
+                SetAutoFlash(_previewRequestBuilder);
+
+                // Finally, we start displaying the camera preview.
+                _previewRequest = _previewRequestBuilder.Build();
+                _captureSession.SetRepeatingRequest(_previewRequest, _captureCallback, _backgroundHandler);
+            }
+            catch (CameraAccessException e)
+            {
+                e.PrintStackTrace();
             }
         }
 
@@ -789,7 +790,7 @@ namespace AzureCVCamera
             }
         }
 
-        public void SetAutoFlash(CaptureRequest.Builder requestBuilder)
+        private void SetAutoFlash(CaptureRequest.Builder requestBuilder)
         {
             if (_cameraDeviceSpec != null && _cameraDeviceSpec.FlashSupported)
             {
@@ -1049,38 +1050,14 @@ namespace AzureCVCamera
 
             public override void OnConfigureFailed(CameraCaptureSession? session)
             {
-                _owner.ShowToast("Failed");
+                _owner.Activity.ShowToast("Failed");
             }
 
             public override void OnConfigured(CameraCaptureSession? session)
             {
-                // The camera is already closed
-                if (_owner._cameraDevice == null || _owner._previewRequestBuilder == null)
+                if (session != null)
                 {
-                    return;
-                }
-
-                if (session == null)
-                {
-                    return;
-                }
-
-                // When the session is ready, we start displaying the preview.
-                _owner._captureSession = session;
-                try
-                {
-                    // Auto focus should be continuous for camera preview.
-                    _owner._previewRequestBuilder.Set(CaptureRequest.ControlAfMode!, (int)ControlAFMode.ContinuousPicture);
-                    // Flash is automatically enabled when necessary.
-                    _owner.SetAutoFlash(_owner._previewRequestBuilder);
-
-                    // Finally, we start displaying the camera preview.
-                    _owner._previewRequest = _owner._previewRequestBuilder.Build();
-                    _owner._captureSession.SetRepeatingRequest(_owner._previewRequest, _owner._captureCallback, _owner._backgroundHandler);
-                }
-                catch (CameraAccessException e)
-                {
-                    e.PrintStackTrace();
+                    _owner.SetUpCaptureSession(session);
                 }
             }
 
@@ -1103,7 +1080,7 @@ namespace AzureCVCamera
                     throw new NotImplementedException();
                 }
 
-                _owner.ShowToast("Saved: " + _owner._file);
+                _owner.Activity.ShowToast("Saved: " + _owner._file);
                 Log.Debug(TAG, _owner._file.ToString());
                 _owner.UnlockFocus();
 
@@ -1213,6 +1190,34 @@ namespace AzureCVCamera
                 private Image _image;
                 private File _file;
             }
+        }
+    }
+
+    public static class ActivityShowToastExtensions
+    {
+        public static void ShowToast(this Activity self, string text)
+        {
+            if (self != null && self.ApplicationContext != null)
+            {
+                self.RunOnUiThread(new ShowToastRunnable(self.ApplicationContext, text));
+            }
+        }
+
+        private class ShowToastRunnable : Java.Lang.Object, IRunnable
+        {
+            public ShowToastRunnable(Context context, string text)
+            {
+                this._context = context;
+                this._text = text;
+            }
+
+            public void Run()
+            {
+                Toast.MakeText(_context, _text, ToastLength.Short)?.Show();
+            }
+
+            private string _text;
+            private Context _context;
         }
     }
 }
