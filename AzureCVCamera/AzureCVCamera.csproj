@@ -55,12 +55,6 @@
     <Compile Include="Constants.cs" />
     <Compile Include="PreviewOverlayView.cs" />
     <Compile Include="Vision.cs" />
-    <Compile Include="Listeners\CameraStateListener.cs" />
-    <Compile Include="Listeners\CameraCaptureStillPictureSessionCallback.cs" />
-    <Compile Include="Listeners\ImageAvailableListener.cs" />
-    <Compile Include="Listeners\CameraCaptureListener.cs" />
-    <Compile Include="Listeners\Camera2BasicSurfaceTextureListener.cs" />
-    <Compile Include="Listeners\CameraCaptureSessionCallback.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\AboutResources.txt" />
