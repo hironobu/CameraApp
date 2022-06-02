@@ -83,9 +83,6 @@ namespace AzureCVCamera
         // TextureView.ISurfaceTextureListener handles several lifecycle events on a TextureView
         private Camera2BasicSurfaceTextureListener? _surfaceTextureListener;
 
-        // ID of the current {@link CameraDevice}.
-        private string _cameraId = string.Empty;
-
         // A {@link CameraCaptureSession } for camera preview.
         public CameraCaptureSession? _captureSession;
 
@@ -126,11 +123,7 @@ namespace AzureCVCamera
         // A {@link Semaphore} to prevent the app from exiting before closing the camera.
         public Semaphore _cameraOpenCloseLock = new Semaphore(1);
 
-        // Whether the current camera device supports Flash or not.
-        private bool _flashSupported;
-
-        // Orientation of the camera sensor
-        private int mSensorOrientation;
+        private CameraDeviceSpec? _cameraDeviceSpec;
 
         // A {@link CameraCaptureSession.CaptureCallback} that handles events related to JPEG capture.
         public CameraCaptureListener? _captureCallback;
@@ -368,7 +361,7 @@ namespace AzureCVCamera
                     _imageReader = ImageReader.NewInstance(cameraDeviceSpec.LargestSize.Width, cameraDeviceSpec.LargestSize.Height, ImageFormatType.Jpeg, /*maxImages*/2);
                     _imageReader?.SetOnImageAvailableListener(_onImageAvailableListener, _backgroundHandler);
 
-                    var (rotatedPreviewWidth, rotatedPreviewHeight, maxPreviewWidth, maxPreviewHeight) = GetPreviewDimension(cameraDeviceSpec, width, height);
+                    var (rotatedPreviewWidth, rotatedPreviewHeight, maxPreviewWidth, maxPreviewHeight) = GetPreviewDimension(cameraDeviceSpec.SensorOrientation, width, height);
 
                     maxPreviewWidth = maxPreviewWidth < MAX_PREVIEW_WIDTH ? maxPreviewWidth : MAX_PREVIEW_WIDTH;
                     maxPreviewHeight = maxPreviewHeight < MAX_PREVIEW_HEIGHT ? maxPreviewHeight : MAX_PREVIEW_HEIGHT;
@@ -376,9 +369,7 @@ namespace AzureCVCamera
                     // Danger, W.R.! Attempting to use too large a preview size could  exceed the camera
                     // bus' bandwidth limitation, resulting in gorgeous previews but the storage of
                     // garbage capture data.
-                    _previewSize = cameraDeviceSpec.ChooseOptimalSize(
-                        rotatedPreviewWidth, rotatedPreviewHeight, maxPreviewWidth,
-                        maxPreviewHeight);
+                    _previewSize = cameraDeviceSpec.ChooseOptimalSize(rotatedPreviewWidth, rotatedPreviewHeight, maxPreviewWidth, maxPreviewHeight);
 
                     // We fit the aspect ratio of TextureView to the size of preview we picked.
                     var orientation = Resources.Configuration?.Orientation;
@@ -395,8 +386,11 @@ namespace AzureCVCamera
                         _textureView.SetAspectRatio(_previewSize.Height, _previewSize.Width);
                     }
 
-                    _flashSupported = cameraDeviceSpec.FlashSupported;
-                    _cameraId = cameraId;
+                    _cameraDeviceSpec = cameraDeviceSpec;
+
+                    // _flashSupported = cameraDeviceSpec.FlashSupported;
+                    // _cameraId = cameraId;
+                    break;
                 }
             }
             catch (CameraAccessException e)
@@ -412,7 +406,7 @@ namespace AzureCVCamera
             }
         }
 
-        private (int, int, int, int) GetPreviewDimension(CameraDeviceSpec cameraDeviceSpec, int width, int height)
+        private (int, int, int, int) GetPreviewDimension(int sensorOrientation, int width, int height)
         {
 #if true
             var displaySize = new Point();
@@ -427,20 +421,19 @@ namespace AzureCVCamera
             var displayRotation = Activity.WindowManager?.DefaultDisplay?.Rotation ?? default;
 
             //noinspection ConstantConditions
-            mSensorOrientation = cameraDeviceSpec.SensorOrientation;
             bool swappedDimensions = false;
             switch (displayRotation)
             {
                 case SurfaceOrientation.Rotation0:
                 case SurfaceOrientation.Rotation180:
-                    if (mSensorOrientation == 90 || mSensorOrientation == 270)
+                    if (sensorOrientation == 90 || sensorOrientation == 270)
                     {
                         swappedDimensions = true;
                     }
                     break;
                 case SurfaceOrientation.Rotation90:
                 case SurfaceOrientation.Rotation270:
-                    if (mSensorOrientation == 0 || mSensorOrientation == 180)
+                    if (sensorOrientation == 0 || sensorOrientation == 180)
                     {
                         swappedDimensions = true;
                     }
@@ -480,7 +473,7 @@ namespace AzureCVCamera
             var activity = Activity;
             var manager = (CameraManager?)activity.GetSystemService(Context.CameraService);
 
-            if (manager == null || _stateCallback == null)
+            if (manager == null || _stateCallback == null || _cameraDeviceSpec == null)
             {
                 throw new NotImplementedException();
             }
@@ -491,7 +484,7 @@ namespace AzureCVCamera
                 {
                     throw new RuntimeException("Time out waiting to lock camera opening.");
                 }
-                manager.OpenCamera(_cameraId, _stateCallback, _backgroundHandler);
+                manager.OpenCamera(_cameraDeviceSpec.CameraId, _stateCallback, _backgroundHandler);
             }
             catch (CameraAccessException e)
             {
@@ -725,11 +718,16 @@ namespace AzureCVCamera
         // Retrieves the JPEG orientation from the specified screen rotation.
         private int GetOrientation(int rotation)
         {
+            if (_cameraDeviceSpec == null)
+            {
+                throw new NotImplementedException("_cameraDeviceSpec is null");
+            }
+
             // Sensor orientation is 90 for most devices, or 270 for some devices (eg. Nexus 5X)
             // We have to take that into account and rotate JPEG properly.
             // For devices with orientation of 90, we simply return our mapping from ORIENTATIONS.
             // For devices with orientation of 270, we need to rotate the JPEG 180 degrees.
-            return (ORIENTATIONS.Get(rotation) + mSensorOrientation + 270) % 360;
+            return (ORIENTATIONS.Get(rotation) + _cameraDeviceSpec.SensorOrientation + 270) % 360;
         }
 
         // Unlock the focus. This method should be called when still image capture sequence is
@@ -790,7 +788,7 @@ namespace AzureCVCamera
 
         public void SetAutoFlash(CaptureRequest.Builder requestBuilder)
         {
-            if (_flashSupported)
+            if (_cameraDeviceSpec != null && _cameraDeviceSpec.FlashSupported)
             {
                 requestBuilder.Set(CaptureRequest.ControlAeMode!, (int)ControlAEMode.OnAutoFlash);
             }
@@ -810,14 +808,17 @@ namespace AzureCVCamera
 
         public class CameraDeviceSpec
         {
-            private CameraDeviceSpec(StreamConfigurationMap streamConfigurationMap, Size largestSize, LensFacing lensFacing, int sensorOrientation, bool flashSupported)
+            private CameraDeviceSpec(string cameraId, StreamConfigurationMap streamConfigurationMap, Size largestSize, LensFacing lensFacing, int sensorOrientation, bool flashSupported)
             {
+                _cameraId = cameraId;
                 _streamConfigurationMap = streamConfigurationMap;
                 _largestSize = largestSize;
                 _lensFacing = lensFacing;
                 _sensorOrientation = sensorOrientation;
                 _flashSupported = flashSupported;
             }
+
+            public string CameraId => _cameraId;
 
             public Size LargestSize => _largestSize;
 
@@ -878,6 +879,7 @@ namespace AzureCVCamera
                 }
             }
 
+            private string _cameraId;
             private StreamConfigurationMap _streamConfigurationMap;
             private Size _largestSize;
             private LensFacing _lensFacing;
@@ -914,7 +916,7 @@ namespace AzureCVCamera
 
                 var flashSupported = ((Boolean?)characteristics?.Get(CameraCharacteristics.FlashInfoAvailable))?.BooleanValue() ?? false;
 
-                return new CameraDeviceSpec(streamConfigurationMap, largest, (LensFacing)facing.IntValue(), (int)sensorOrientation, flashSupported);
+                return new CameraDeviceSpec(cameraId, streamConfigurationMap, largest, (LensFacing)facing.IntValue(), (int)sensorOrientation, flashSupported);
             }
         }
 
