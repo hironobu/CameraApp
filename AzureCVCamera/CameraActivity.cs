@@ -174,6 +174,10 @@ namespace AzureCVCamera
             ORIENTATIONS.Append((int)SurfaceOrientation.Rotation270, 180);
 
             _previewSizeCallback = this;
+
+            _file = new File(Activity.GetExternalFilesDir(null), $"{Guid.NewGuid()}.jpg");
+            _captureCallback = new CameraCaptureListener(this);
+            _onImageAvailableListener = new ImageAvailableListener(this, _file);
         }
 
         public override View OnCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState)
@@ -193,14 +197,6 @@ namespace AzureCVCamera
                 _previewOverlayView.SetOnClickListener(this);
                 _previewOverlayView.AvailableSize = _previewSize;
             }
-        }
-
-        public override void OnActivityCreated(Bundle savedInstanceState)
-        {
-            base.OnActivityCreated(savedInstanceState);
-            _file = new File(Activity.GetExternalFilesDir(null), $"{Guid.NewGuid()}.jpg");
-            _captureCallback = new CameraCaptureListener(this);
-            _onImageAvailableListener = new ImageAvailableListener(this, _file);
         }
 
         public override void OnResume()
@@ -286,7 +282,7 @@ namespace AzureCVCamera
 
                 ProcessOCR(resizedPath);
             }*/
-            if (_file == null)
+            if (_file == null || _file.Path == null)
             {
                 return;
             }
@@ -574,10 +570,10 @@ namespace AzureCVCamera
 
                 // We set up a CaptureRequest.Builder with the output Surface.
                 _previewRequestBuilder = _cameraDevice.CreateCaptureRequest(CameraTemplate.Preview);
-                _previewRequestBuilder.AddTarget(surface);
+                _previewRequestBuilder?.AddTarget(surface);
 
                 // Here, we create a CameraCaptureSession for camera preview.
-                List<Surface> surfaces = new List<Surface>();
+                var surfaces = new List<Surface>();
                 surfaces.Add(surface);
                 surfaces.Add(_imageReader?.Surface!);
                 _cameraDevice.CreateCaptureSession(surfaces, new CameraCaptureSessionCallback(this), null);
@@ -694,7 +690,14 @@ namespace AzureCVCamera
                 }
                 // This is the CaptureRequest.Builder that we use to take a picture.
                 if (_stillCaptureBuilder == null)
-                    _stillCaptureBuilder = _cameraDevice.CreateCaptureRequest(CameraTemplate.StillCapture);
+                {
+                    var stillCaptureBuilder = _cameraDevice.CreateCaptureRequest(CameraTemplate.StillCapture);
+                    if (stillCaptureBuilder == null)
+                    {
+                        throw new NotImplementedException("CreateCaptureRequest() failed");
+                    }
+                    _stillCaptureBuilder = stillCaptureBuilder;
+                }
 
                 _stillCaptureBuilder.AddTarget(_imageReader?.Surface!);
 
@@ -938,22 +941,22 @@ namespace AzureCVCamera
                 _owner = owner;
             }
 
-            public void OnSurfaceTextureAvailable(SurfaceTexture surface, int width, int height)
+            public void OnSurfaceTextureAvailable(SurfaceTexture? surface, int width, int height)
             {
                 _owner.OpenCamera(width, height);
             }
 
-            public bool OnSurfaceTextureDestroyed(SurfaceTexture surface)
+            public bool OnSurfaceTextureDestroyed(SurfaceTexture? surface)
             {
                 return true;
             }
 
-            public void OnSurfaceTextureSizeChanged(SurfaceTexture surface, int width, int height)
+            public void OnSurfaceTextureSizeChanged(SurfaceTexture? surface, int width, int height)
             {
                 _owner.ConfigureTransform(width, height);
             }
 
-            public void OnSurfaceTextureUpdated(SurfaceTexture surface)
+            public void OnSurfaceTextureUpdated(SurfaceTexture? surface)
             {
             }
 
@@ -967,23 +970,23 @@ namespace AzureCVCamera
                 this._owner = owner;
             }
 
-            public override void OnCaptureCompleted(CameraCaptureSession session, CaptureRequest request, TotalCaptureResult result)
+            public override void OnCaptureCompleted(CameraCaptureSession? session, CaptureRequest? request, TotalCaptureResult? result)
             {
                 Process(result);
             }
 
-            public override void OnCaptureProgressed(CameraCaptureSession session, CaptureRequest request, CaptureResult partialResult)
+            public override void OnCaptureProgressed(CameraCaptureSession? session, CaptureRequest? request, CaptureResult? partialResult)
             {
                 Process(partialResult);
             }
 
-            private void Process(CaptureResult result)
+            private void Process(CaptureResult? result)
             {
                 switch (_owner._state)
                 {
                     case Camera2BasicFragment.STATE_WAITING_LOCK:
                         {
-                            var afState = ((Integer?)result.Get(CaptureResult.ControlAfState))?.IntValue();
+                            var afState = ((Integer?)result?.Get(CaptureResult.ControlAfState))?.IntValue();
                             if (afState == null)
                             {
                                 _owner._state = Camera2BasicFragment.STATE_PICTURE_TAKEN; // avoids multiple picture callbacks
@@ -992,7 +995,7 @@ namespace AzureCVCamera
                             else if (afState == (int)ControlAFState.FocusedLocked || afState == (int)ControlAFState.NotFocusedLocked)
                             {
                                 // ControlAeState can be null on some devices
-                                var aeState = (Integer?)result.Get(CaptureResult.ControlAeState);
+                                var aeState = (Integer?)result?.Get(CaptureResult.ControlAeState);
                                 if (aeState == null || aeState.IntValue() == ((int)ControlAEState.Converged))
                                 {
                                     _owner._state = Camera2BasicFragment.STATE_PICTURE_TAKEN;
@@ -1008,7 +1011,7 @@ namespace AzureCVCamera
                     case Camera2BasicFragment.STATE_WAITING_PRECAPTURE:
                         {
                             // ControlAeState can be null on some devices
-                            var aeState = ((Integer?)result.Get(CaptureResult.ControlAeState))?.IntValue();
+                            var aeState = ((Integer?)result?.Get(CaptureResult.ControlAeState))?.IntValue();
                             if (aeState == null ||
                                 aeState == ((int)ControlAEState.Precapture) ||
                                 aeState == ((int)ControlAEState.FlashRequired))
@@ -1020,7 +1023,7 @@ namespace AzureCVCamera
                     case Camera2BasicFragment.STATE_WAITING_NON_PRECAPTURE:
                         {
                             // ControlAeState can be null on some devices
-                            var aeState = ((Integer?)result.Get(CaptureResult.ControlAeState))?.IntValue();
+                            var aeState = ((Integer?)result?.Get(CaptureResult.ControlAeState))?.IntValue();
                             if (aeState == null || aeState != ((int)ControlAEState.Precapture))
                             {
                                 _owner._state = Camera2BasicFragment.STATE_PICTURE_TAKEN;
@@ -1044,15 +1047,20 @@ namespace AzureCVCamera
                 _owner = owner;
             }
 
-            public override void OnConfigureFailed(CameraCaptureSession session)
+            public override void OnConfigureFailed(CameraCaptureSession? session)
             {
                 _owner.ShowToast("Failed");
             }
 
-            public override void OnConfigured(CameraCaptureSession session)
+            public override void OnConfigured(CameraCaptureSession? session)
             {
                 // The camera is already closed
                 if (_owner._cameraDevice == null || _owner._previewRequestBuilder == null)
+                {
+                    return;
+                }
+
+                if (session == null)
                 {
                     return;
                 }
@@ -1088,7 +1096,7 @@ namespace AzureCVCamera
                 _owner = owner;
             }
 
-            public override void OnCaptureCompleted(CameraCaptureSession session, CaptureRequest request, TotalCaptureResult result)
+            public override void OnCaptureCompleted(CameraCaptureSession? session, CaptureRequest? request, TotalCaptureResult? result)
             {
                 if (_owner._file == null)
                 {
@@ -1112,7 +1120,7 @@ namespace AzureCVCamera
                 _owner = owner;
             }
 
-            public override void OnOpened(CameraDevice cameraDevice)
+            public override void OnOpened(CameraDevice? cameraDevice)
             {
                 // This method is called when the camera is opened.  We start camera preview here.
                 _owner._cameraOpenCloseLock.Release();
@@ -1120,17 +1128,17 @@ namespace AzureCVCamera
                 _owner.CreateCameraPreviewSession();
             }
 
-            public override void OnDisconnected(CameraDevice cameraDevice)
+            public override void OnDisconnected(CameraDevice? cameraDevice)
             {
                 _owner._cameraOpenCloseLock.Release();
-                cameraDevice.Close();
+                cameraDevice?.Close();
                 _owner._cameraDevice = null;
             }
 
-            public override void OnError(CameraDevice cameraDevice, CameraError error)
+            public override void OnError(CameraDevice? cameraDevice, CameraError error)
             {
                 _owner._cameraOpenCloseLock.Release();
-                cameraDevice.Close();
+                cameraDevice?.Close();
                 _owner._cameraDevice = null;
                 if (_owner == null)
                     return;

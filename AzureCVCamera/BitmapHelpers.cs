@@ -14,7 +14,7 @@ namespace AzureCVCamera
         public static Bitmap LoadAndResizeBitmap(string fileName, int width, int height, Orientation orientation = default)
         {
             // First we get the the dimensions of the file on disk
-            BitmapFactory.Options options = new BitmapFactory.Options { InJustDecodeBounds = true };
+            var options = new BitmapFactory.Options { InJustDecodeBounds = true };
             var _ = BitmapFactory.DecodeFile(fileName, options);
 
             // Next we calculate the ratio that we need to resize the image by
@@ -134,12 +134,17 @@ namespace AzureCVCamera
 
         public static Bitmap RotateBitmapIfRequired(Context context, Java.IO.File file)
         {
+            if (file.Path == null)
+            {
+                throw new ArgumentException("file.Path is null");
+            }
+
             var uri = Uri.FromFile(file);
             var bitmap = BitmapFactory.DecodeFile(file.Path, new BitmapFactory.Options { });
 
             if (uri == null || bitmap == null)
             {
-                throw new NotSupportedException();
+                throw new NotImplementedException("uri or bitmap is null");
             }
 
             var parcelFileDescriptor = context.ContentResolver?.OpenFileDescriptor(uri, "r");
