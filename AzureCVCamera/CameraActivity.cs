@@ -59,27 +59,6 @@ namespace AzureCVCamera
         // Tag for the {@link Log}.
         private static readonly string TAG = "Camera2BasicFragment";
 
-        // Camera state: Showing camera preview.
-        public const int STATE_PREVIEW = 0;
-
-        // Camera state: Waiting for the focus to be locked.
-        public const int STATE_WAITING_LOCK = 1;
-
-        // Camera state: Waiting for the exposure to be precapture state.
-        public const int STATE_WAITING_PRECAPTURE = 2;
-
-        //Camera state: Waiting for the exposure state to be something other than precapture.
-        public const int STATE_WAITING_NON_PRECAPTURE = 3;
-
-        // Camera state: Picture was taken.
-        public const int STATE_PICTURE_TAKEN = 4;
-
-        // Max preview width that is guaranteed by Camera2 API
-        private static readonly int MAX_PREVIEW_WIDTH = 1920;
-
-        // Max preview height that is guaranteed by Camera2 API
-        private static readonly int MAX_PREVIEW_HEIGHT = 1080;
-
         // TextureView.ISurfaceTextureListener handles several lifecycle events on a TextureView
         private Camera2BasicSurfaceTextureListener? _surfaceTextureListener;
 
@@ -118,7 +97,7 @@ namespace AzureCVCamera
         private CaptureRequest? _previewRequest;
 
         // The current state of camera state for taking pictures.
-        private int _state = STATE_PREVIEW;
+        private int _state = Camera2Const.STATE_PREVIEW;
 
         // A {@link Semaphore} to prevent the app from exiting before closing the camera.
         private Semaphore _cameraOpenCloseLock = new Semaphore(1);
@@ -360,8 +339,8 @@ namespace AzureCVCamera
 
                     var (rotatedPreviewWidth, rotatedPreviewHeight, maxPreviewWidth, maxPreviewHeight) = GetPreviewDimension(cameraDeviceSpec.SensorOrientation, width, height);
 
-                    maxPreviewWidth = maxPreviewWidth < MAX_PREVIEW_WIDTH ? maxPreviewWidth : MAX_PREVIEW_WIDTH;
-                    maxPreviewHeight = maxPreviewHeight < MAX_PREVIEW_HEIGHT ? maxPreviewHeight : MAX_PREVIEW_HEIGHT;
+                    maxPreviewWidth = maxPreviewWidth < Camera2Const.MAX_PREVIEW_WIDTH ? maxPreviewWidth : Camera2Const.MAX_PREVIEW_WIDTH;
+                    maxPreviewHeight = maxPreviewHeight < Camera2Const.MAX_PREVIEW_HEIGHT ? maxPreviewHeight : Camera2Const.MAX_PREVIEW_HEIGHT;
 
                     // Danger, W.R.! Attempting to use too large a preview size could  exceed the camera
                     // bus' bandwidth limitation, resulting in gorgeous previews but the storage of
@@ -648,7 +627,7 @@ namespace AzureCVCamera
             try
             {
                 _previewRequestBuilder.Set(CaptureRequest.ControlAfTrigger!, (int)ControlAFTrigger.Start);
-                _state = STATE_WAITING_LOCK;
+                _state = Camera2Const.STATE_WAITING_LOCK;
                 _captureSession?.Capture(_previewRequestBuilder.Build(), _captureCallback, _backgroundHandler);
             }
             catch (CameraAccessException e)
@@ -659,7 +638,7 @@ namespace AzureCVCamera
 
         public void RunPrecaptureSequence()
         {
-            if (_previewRequestBuilder == null)
+            if (_previewRequestBuilder == null || _captureSession == null)
             {
                 return;
             }
@@ -667,8 +646,8 @@ namespace AzureCVCamera
             try
             {
                 _previewRequestBuilder.Set(CaptureRequest.ControlAePrecaptureTrigger!, (int)ControlAEPrecaptureTrigger.Start);
-                _state = STATE_WAITING_PRECAPTURE;
-                _captureSession?.Capture(_previewRequestBuilder.Build(), _captureCallback, _backgroundHandler);
+                _state = Camera2Const.STATE_WAITING_PRECAPTURE;
+                _captureSession.Capture(_previewRequestBuilder.Build(), _captureCallback, _backgroundHandler);
             }
             catch (CameraAccessException e)
             {
@@ -685,7 +664,7 @@ namespace AzureCVCamera
             try
             {
                 var activity = Activity;
-                if (activity == null || _cameraDevice == null)
+                if (activity == null || _cameraDevice == null || _captureSession == null)
                 {
                     return;
                 }
@@ -710,8 +689,8 @@ namespace AzureCVCamera
                 int rotation = (int)(activity.WindowManager?.DefaultDisplay?.Rotation ?? 0);
                 _stillCaptureBuilder.Set(CaptureRequest.JpegOrientation!, GetOrientation(rotation));
 
-                _captureSession?.StopRepeating();
-                _captureSession?.Capture(_stillCaptureBuilder.Build(), new CameraCaptureStillPictureSessionCallback(this), null);
+                _captureSession.StopRepeating();
+                _captureSession.Capture(_stillCaptureBuilder.Build(), new CameraCaptureStillPictureSessionCallback(this), null);
             }
             catch (CameraAccessException e)
             {
@@ -750,7 +729,7 @@ namespace AzureCVCamera
                 SetAutoFlash(_previewRequestBuilder);
                 _captureSession?.Capture(_previewRequestBuilder.Build(), _captureCallback, _backgroundHandler);
                 // After this, the camera will go back to the normal state of preview.
-                _state = STATE_PREVIEW;
+                _state = Camera2Const.STATE_PREVIEW;
                 _captureSession?.SetRepeatingRequest(_previewRequest, _captureCallback, _backgroundHandler);
             }
             catch (CameraAccessException e)
@@ -985,12 +964,12 @@ namespace AzureCVCamera
             {
                 switch (_owner._state)
                 {
-                    case Camera2BasicFragment.STATE_WAITING_LOCK:
+                    case Camera2Const.STATE_WAITING_LOCK:
                         {
                             var afState = ((Integer?)result?.Get(CaptureResult.ControlAfState))?.IntValue();
                             if (afState == null)
                             {
-                                _owner._state = Camera2BasicFragment.STATE_PICTURE_TAKEN; // avoids multiple picture callbacks
+                                _owner._state = Camera2Const.STATE_PICTURE_TAKEN; // avoids multiple picture callbacks
                                 _owner.CaptureStillPicture();
                             }
                             else if (afState == (int)ControlAFState.FocusedLocked || afState == (int)ControlAFState.NotFocusedLocked)
@@ -999,7 +978,7 @@ namespace AzureCVCamera
                                 var aeState = (Integer?)result?.Get(CaptureResult.ControlAeState);
                                 if (aeState == null || aeState.IntValue() == ((int)ControlAEState.Converged))
                                 {
-                                    _owner._state = Camera2BasicFragment.STATE_PICTURE_TAKEN;
+                                    _owner._state = Camera2Const.STATE_PICTURE_TAKEN;
                                     _owner.CaptureStillPicture();
                                 }
                                 else
@@ -1009,7 +988,7 @@ namespace AzureCVCamera
                             }
                             break;
                         }
-                    case Camera2BasicFragment.STATE_WAITING_PRECAPTURE:
+                    case Camera2Const.STATE_WAITING_PRECAPTURE:
                         {
                             // ControlAeState can be null on some devices
                             var aeState = ((Integer?)result?.Get(CaptureResult.ControlAeState))?.IntValue();
@@ -1017,23 +996,23 @@ namespace AzureCVCamera
                                 aeState == ((int)ControlAEState.Precapture) ||
                                 aeState == ((int)ControlAEState.FlashRequired))
                             {
-                                _owner._state = Camera2BasicFragment.STATE_WAITING_NON_PRECAPTURE;
+                                _owner._state = Camera2Const.STATE_WAITING_NON_PRECAPTURE;
                             }
                             break;
                         }
-                    case Camera2BasicFragment.STATE_WAITING_NON_PRECAPTURE:
+                    case Camera2Const.STATE_WAITING_NON_PRECAPTURE:
                         {
                             // ControlAeState can be null on some devices
                             var aeState = ((Integer?)result?.Get(CaptureResult.ControlAeState))?.IntValue();
                             if (aeState == null || aeState != ((int)ControlAEState.Precapture))
                             {
-                                _owner._state = Camera2BasicFragment.STATE_PICTURE_TAKEN;
+                                _owner._state = Camera2Const.STATE_PICTURE_TAKEN;
                                 _owner.CaptureStillPicture();
                             }
                             break;
                         }
 
-                    case Camera2BasicFragment.STATE_PICTURE_TAKEN:
+                    case Camera2Const.STATE_PICTURE_TAKEN:
                         break;
                 }
             }
@@ -1219,5 +1198,29 @@ namespace AzureCVCamera
             private string _text;
             private Context _context;
         }
+    }
+
+    public class Camera2Const
+    {
+        // Camera state: Showing camera preview.
+        public const int STATE_PREVIEW = 0;
+
+        // Camera state: Waiting for the focus to be locked.
+        public const int STATE_WAITING_LOCK = 1;
+
+        // Camera state: Waiting for the exposure to be precapture state.
+        public const int STATE_WAITING_PRECAPTURE = 2;
+
+        //Camera state: Waiting for the exposure state to be something other than precapture.
+        public const int STATE_WAITING_NON_PRECAPTURE = 3;
+
+        // Camera state: Picture was taken.
+        public const int STATE_PICTURE_TAKEN = 4;
+
+        // Max preview width that is guaranteed by Camera2 API
+        public static readonly int MAX_PREVIEW_WIDTH = 1920;
+
+        // Max preview height that is guaranteed by Camera2 API
+        public static readonly int MAX_PREVIEW_HEIGHT = 1080;
     }
 }
