@@ -14,18 +14,15 @@ using Android.OS;
 using Android.Util;
 using Android.Views;
 using Android.Widget;
+using AndroidX.Core.App;
 using AndroidX.Core.Content;
-using AndroidX.Fragment.App;
 using Java.IO;
 using Java.Lang;
 using Java.Util;
 using Java.Util.Concurrent;
 using Boolean = Java.Lang.Boolean;
-using Fragment = AndroidX.Fragment.App.Fragment;
-using FragmentCompat = AndroidX.Core.App.ActivityCompat;
 using Math = Java.Lang.Math;
 using Orientation = Android.Content.Res.Orientation;
-using Uri = Android.Net.Uri;
 
 namespace AzureCVCamera
 {
@@ -35,7 +32,7 @@ namespace AzureCVCamera
     }
 
     [Activity(Label = "@string/app_name", Theme = "@style/AppTheme.NoActionBar")]
-    public class CameraActivity : Activity, View.IOnClickListener, FragmentCompat.IOnRequestPermissionsResultCallback, IPreviewSizeCallback
+    public class CameraActivity : Activity, View.IOnClickListener, ActivityCompat.IOnRequestPermissionsResultCallback, IPreviewSizeCallback
     {
         private static readonly SparseIntArray ORIENTATIONS = new SparseIntArray();
         public static readonly int REQUEST_CAMERA_PERMISSION = 1;
@@ -155,13 +152,13 @@ namespace AzureCVCamera
 
         private void RequestCameraPermission()
         {
-            if (FragmentCompat.ShouldShowRequestPermissionRationale(this, Manifest.Permission.Camera))
+            if (ActivityCompat.ShouldShowRequestPermissionRationale(this, Manifest.Permission.Camera))
             {
                 System.Diagnostics.Debug.WriteLine("new ConfirmationDialog().Show(ChildFragmentManager, FRAGMENT_DIALOG);");
             }
             else
             {
-                FragmentCompat.RequestPermissions(this, new[] { Manifest.Permission.Camera }, REQUEST_CAMERA_PERMISSION);
+                ActivityCompat.RequestPermissions(this, new[] { Manifest.Permission.Camera }, REQUEST_CAMERA_PERMISSION);
             }
         }
 
