@@ -2,20 +2,16 @@
 
 using System;
 using System.Linq;
-using System.Threading.Tasks;
 using Android.App;
 using Android.Content;
 using Android.Content.PM;
-using Android.Graphics;
 using Android.Hardware.Camera2;
-using Android.Media;
 using Android.OS;
 using Android.Provider;
 using Android.Widget;
 using Java.IO;
 using Java.Lang;
 using Environment = Android.OS.Environment;
-using Uri = Android.Net.Uri;
 
 namespace CameraApp
 {
@@ -60,24 +56,7 @@ namespace CameraApp
 
         private void OpenCameraActivity(object sender, EventArgs eventArgs)
         {
-#if false
-            Context context = Application.Context;
-
-            Intent intent = new Intent(MediaStore.ActionImageCapture);
-            App._file = new File(App._dir, string.Format("myPhoto_{0}.jpg", Guid.NewGuid()));
-            //intent.PutExtra(MediaStore.ExtraOutput, Uri.FromFile(App._file));
-            Uri uri = FileProvider.GetUriForFile(this, $"{context.PackageName}.fileprovider", App._file);
-
-            intent.PutExtra(MediaStore.ExtraOutput, uri);
-            // intent.PutExtra(MediaStore.ExtraScreenOrientation, (int)ScreenOrientation.Portrait);
-
-            // intent.SetType("message/rfc822");
-            StartActivityForResult(intent, 0);
-
-            Diagnostics();
-#endif
-
-            var intent = new Intent(this, typeof(AzureCVCamera.CameraActivity));
+            var intent = new Intent(this, typeof(AzureCVCamera.ComputerVisionCameraActivity));
 
             StartActivityForResult(intent, 0);
         }
@@ -101,52 +80,6 @@ namespace CameraApp
             {
                 return;
             }
-
-            /*
-            // Make it available in the gallery
-            var file = data?.GetStringExtra("file");
-            if (file == null)
-            {
-                return;
-            }
-
-            var contentUri = Uri.FromFile(new File(file));
-            if (contentUri == null || contentUri.Path == null)
-            {
-                return;
-            }
-
-            // 標準ギャラリーにスキャンさせる
-            MediaScannerConnection.ScanFile( // API Level 8
-                    this, // Context
-                    new [] { contentUri.Path },
-                    new [] { "image/jpeg" },
-                    null);
-
-            // Display in ImageView. We will resize the bitmap to fit the display.
-            // Loading the full sized image will consume to much memory
-            // and cause the application to crash.
-            var orientation = BitmapHelpers.GetOrientation(file);
-
-            int height = Resources?.DisplayMetrics?.HeightPixels ?? 0;
-            int width = _imageView.Height;
-            var bitmap = BitmapHelpers.LoadAndResizeBitmap(file, width, height, orientation);
-            var cropHeight = bitmap.Height / 10; // TODO: no heuristic
-            bitmap = Bitmap.CreateBitmap(bitmap, 0, (bitmap.Height - cropHeight) / 2, bitmap.Width, cropHeight);
-            if (bitmap != null)
-            {
-                _imageView.SetImageBitmap(bitmap);
-
-                var resizedPath = System.IO.Path.ChangeExtension(file, ".resized.jpg");
-                BitmapHelpers.ExportBitmapAsJpeg(bitmap, resizedPath);
-
-                {
-                    var f = new System.IO.FileInfo(resizedPath);
-                    System.Diagnostics.Debug.WriteLine($"{bitmap.Width}, {bitmap.Height}, {f.Length}");
-                }
-
-                ProcessOCR(resizedPath);
-            }*/
 
             var orientation = BitmapHelpers.GetOrientation(file);
 
