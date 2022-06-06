@@ -29,35 +29,20 @@ using Uri = Android.Net.Uri;
 
 namespace AzureCVCamera
 {
-    [Activity(Label = "@string/app_name", Theme = "@style/AppTheme.NoActionBar")]
-    public class CameraActivity : FragmentActivity
-    {
-        protected override void OnCreate(Bundle? bundle)
-        {
-            base.OnCreate(bundle);
-            // ActionBar.Hide();
-            SetContentView(Resource.Layout.activity_camera);
-
-            if (bundle == null)
-            {
-                SupportFragmentManager.BeginTransaction().Replace(Resource.Id.container, Camera2BasicFragment.NewInstance()).Commit();
-            }
-        }
-    }
-
     public interface IPreviewSizeCallback
     {
         public void PreviewSizeUpdated(Size previewSize);
     }
 
-    public class Camera2BasicFragment : Fragment, View.IOnClickListener, FragmentCompat.IOnRequestPermissionsResultCallback, IPreviewSizeCallback
+    [Activity(Label = "@string/app_name", Theme = "@style/AppTheme.NoActionBar")]
+    public class CameraActivity : Activity, View.IOnClickListener, FragmentCompat.IOnRequestPermissionsResultCallback, IPreviewSizeCallback
     {
         private static readonly SparseIntArray ORIENTATIONS = new SparseIntArray();
         public static readonly int REQUEST_CAMERA_PERMISSION = 1;
         // private static readonly string FRAGMENT_DIALOG = "dialog";
 
         // Tag for the {@link Log}.
-        private static readonly string TAG = "Camera2BasicFragment";
+        private static readonly string TAG = "CameraActivity";
 
         // TextureView.ISurfaceTextureListener handles several lifecycle events on a TextureView
         private Camera2BasicSurfaceTextureListener? _surfaceTextureListener;
@@ -109,14 +94,12 @@ namespace AzureCVCamera
 
         private IPreviewSizeCallback? _previewSizeCallback;
 
-        public static Camera2BasicFragment NewInstance()
-        {
-            return new Camera2BasicFragment();
-        }
-
-        public override void OnCreate(Bundle savedInstanceState)
+        protected override void OnCreate(Bundle? savedInstanceState)
         {
             base.OnCreate(savedInstanceState);
+            // ActionBar.Hide();
+            SetContentView(Resource.Layout.activity_camera);
+
             _stateCallback = new CameraStateListener(this);
             _surfaceTextureListener = new Camera2BasicSurfaceTextureListener(this);
 
@@ -128,23 +111,15 @@ namespace AzureCVCamera
 
             _previewSizeCallback = this;
 
-            _file = new File(Activity.GetExternalFilesDir(null), $"{Guid.NewGuid()}.jpg");
+            _file = new File(GetExternalFilesDir(null), $"{Guid.NewGuid()}.jpg");
             _captureCallback = new CameraCaptureListener(this);
             _onImageAvailableListener = new ImageAvailableListener(this, _file);
-        }
 
-        public override View OnCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState)
-        {
-            return inflater.Inflate(Resource.Layout.fragment_camera2_basic, container, false)!;
-        }
+            _textureView = FindViewById<AutoFitTextureView>(Resource.Id.texture)!;
+            FindViewById(Resource.Id.closeCamera)?.SetOnClickListener(this);
+            FindViewById(Resource.Id.info)?.SetOnClickListener(this);
 
-        public override void OnViewCreated(View view, Bundle savedInstanceState)
-        {
-            _textureView = view.FindViewById<AutoFitTextureView>(Resource.Id.texture)!;
-            view.FindViewById(Resource.Id.closeCamera)?.SetOnClickListener(this);
-            view.FindViewById(Resource.Id.info)?.SetOnClickListener(this);
-
-            _previewOverlayView = Activity.FindViewById<PreviewOverlayView>(Resource.Id.previewOverlayView1)!;
+            _previewOverlayView = FindViewById<PreviewOverlayView>(Resource.Id.previewOverlayView1)!;
             if (_previewOverlayView != null)
             {
                 _previewOverlayView.SetOnClickListener(this);
@@ -152,7 +127,7 @@ namespace AzureCVCamera
             }
         }
 
-        public override void OnResume()
+        protected override void OnResume()
         {
             base.OnResume();
             StartBackgroundThread();
@@ -171,7 +146,7 @@ namespace AzureCVCamera
             }
         }
 
-        public override void OnPause()
+        protected override void OnPause()
         {
             CloseCamera();
             StopBackgroundThread();
@@ -180,13 +155,13 @@ namespace AzureCVCamera
 
         private void RequestCameraPermission()
         {
-            if (FragmentCompat.ShouldShowRequestPermissionRationale(Activity, Manifest.Permission.Camera))
+            if (FragmentCompat.ShouldShowRequestPermissionRationale(this, Manifest.Permission.Camera))
             {
                 System.Diagnostics.Debug.WriteLine("new ConfirmationDialog().Show(ChildFragmentManager, FRAGMENT_DIALOG);");
             }
             else
             {
-                FragmentCompat.RequestPermissions(Activity, new[] { Manifest.Permission.Camera }, REQUEST_CAMERA_PERMISSION);
+                FragmentCompat.RequestPermissions(this, new[] { Manifest.Permission.Camera }, REQUEST_CAMERA_PERMISSION);
             }
         }
 
@@ -203,14 +178,14 @@ namespace AzureCVCamera
             }
         }
 
-        public void Finish()
+        /*public void Finish()
         {
             // Activity.SupportFragmentManager.BeginTransaction().Remove(this).Commit();
 
             // CloseCamera();
             // StopBackgroundThread();
             Activity.Finish();
-        }
+        }*/
 
         public void ProcessOCR()
         {/*
@@ -265,13 +240,13 @@ namespace AzureCVCamera
                     var intent = new Intent();
                     intent.PutExtra("file", originpath);
                     intent.PutExtra("ocrtext", ocrtext);
-                    Activity.SetResult(0, intent);
-                    Activity.RunOnUiThread(() =>
+                    SetResult(0, intent);
+                    RunOnUiThread(() =>
                     {
                         _previewOverlayView.Bitmap = null;
                         _previewOverlayView.Color = Color.White;
                         _previewOverlayView.Invalidate();
-                        Activity.ShowToast($"result: {ocrtext}");
+                        this.ShowToast($"result: {ocrtext}");
                     });
                 });
             }
@@ -307,12 +282,7 @@ namespace AzureCVCamera
         // Sets up member variables related to camera.
         private void SetUpCameraOutputs(int width, int height)
         {
-            if (Activity == null)
-            {
-                throw new NotImplementedException("Activity is null");
-            }
-
-            var manager = (CameraManager?)Activity.GetSystemService(Context.CameraService);
+            var manager = (CameraManager?)GetSystemService(CameraService);
             if (manager == null)
             {
                 throw new NotImplementedException("CameraService is null");
@@ -348,7 +318,7 @@ namespace AzureCVCamera
                     _previewSize = cameraDeviceSpec.ChooseOptimalSize(rotatedPreviewWidth, rotatedPreviewHeight, maxPreviewWidth, maxPreviewHeight);
 
                     // We fit the aspect ratio of TextureView to the size of preview we picked.
-                    var orientation = Resources.Configuration?.Orientation;
+                    var orientation = Resources?.Configuration?.Orientation;
                     if (orientation == Orientation.Landscape)
                     {
                         _previewSizeCallback?.PreviewSizeUpdated(_previewSize);
@@ -386,7 +356,7 @@ namespace AzureCVCamera
         {
 #if true
             var displaySize = new Point();
-            Activity.WindowManager?.DefaultDisplay?.GetSize(displaySize);
+            WindowManager?.DefaultDisplay?.GetSize(displaySize);
             var bounds = new Rect(0, 0, displaySize.X, displaySize.Y);
 #else
             var bounds = activity?.WindowManager?.CurrentWindowMetrics.Bounds;
@@ -394,7 +364,7 @@ namespace AzureCVCamera
 
             // Find out if we need to swap dimension to get the preview size relative to sensor
             // coordinate.
-            var displayRotation = Activity.WindowManager?.DefaultDisplay?.Rotation ?? default;
+            var displayRotation = WindowManager?.DefaultDisplay?.Rotation ?? default;
 
             //noinspection ConstantConditions
             bool swappedDimensions = false;
@@ -438,7 +408,7 @@ namespace AzureCVCamera
         // Opens the camera specified by {@link Camera2BasicFragment#mCameraId}.
         public void OpenCamera(int width, int height)
         {
-            if (ContextCompat.CheckSelfPermission(Activity, Manifest.Permission.Camera) != Permission.Granted)
+            if (ContextCompat.CheckSelfPermission(this, Manifest.Permission.Camera) != Permission.Granted)
             {
                 RequestCameraPermission();
                 return;
@@ -446,8 +416,7 @@ namespace AzureCVCamera
 
             SetUpCameraOutputs(width, height);
             ConfigureTransform(width, height);
-            var activity = Activity;
-            var manager = (CameraManager?)activity.GetSystemService(Context.CameraService);
+            var manager = (CameraManager?)GetSystemService(CameraService);
 
             if (manager == null || _stateCallback == null || _cameraDeviceSpec == null)
             {
@@ -580,12 +549,11 @@ namespace AzureCVCamera
 
         public void ConfigureTransform(int viewWidth, int viewHeight)
         {
-            Activity activity = Activity;
-            if (_textureView == null || _previewSize == null || activity == null)
+            if (_textureView == null || _previewSize == null)
             {
                 return;
             }
-            var rotation = (int)(activity.WindowManager?.DefaultDisplay?.Rotation ?? 0);
+            var rotation = (int)(WindowManager?.DefaultDisplay?.Rotation ?? 0);
             Matrix matrix = new Matrix();
             RectF viewRect = new RectF(0, 0, viewWidth, viewHeight);
             RectF bufferRect = new RectF(0, 0, _previewSize.Height, _previewSize.Width);
@@ -663,8 +631,7 @@ namespace AzureCVCamera
         {
             try
             {
-                var activity = Activity;
-                if (activity == null || _cameraDevice == null || _captureSession == null)
+                if (_cameraDevice == null || _captureSession == null)
                 {
                     return;
                 }
@@ -686,7 +653,7 @@ namespace AzureCVCamera
                 SetAutoFlash(_stillCaptureBuilder);
 
                 // Orientation
-                int rotation = (int)(activity.WindowManager?.DefaultDisplay?.Rotation ?? 0);
+                int rotation = (int)(WindowManager?.DefaultDisplay?.Rotation ?? 0);
                 _stillCaptureBuilder.Set(CaptureRequest.JpegOrientation!, GetOrientation(rotation));
 
                 _captureSession.StopRepeating();
@@ -752,13 +719,13 @@ namespace AzureCVCamera
             else if (v.Id == Resource.Id.closeCamera)
             {
                 //TakePicture();
-                Activity.Finish();
+                this.Finish();
             }
             else if (v.Id == Resource.Id.info)
             {
 
                 EventHandler<DialogClickEventArgs> nullHandler = default!;
-                Activity activity = Activity;
+                Activity activity = this;
                 if (activity != null)
                 {
                     new AlertDialog.Builder(activity)
@@ -916,7 +883,7 @@ namespace AzureCVCamera
 
         class Camera2BasicSurfaceTextureListener : Java.Lang.Object, TextureView.ISurfaceTextureListener
         {
-            public Camera2BasicSurfaceTextureListener(Camera2BasicFragment owner)
+            public Camera2BasicSurfaceTextureListener(CameraActivity owner)
             {
                 _owner = owner;
             }
@@ -940,12 +907,12 @@ namespace AzureCVCamera
             {
             }
 
-            private readonly Camera2BasicFragment _owner;
+            private readonly CameraActivity _owner;
         }
 
         class CameraCaptureListener : CameraCaptureSession.CaptureCallback
         {
-            public CameraCaptureListener(Camera2BasicFragment owner)
+            public CameraCaptureListener(CameraActivity owner)
             {
                 this._owner = owner;
             }
@@ -1017,19 +984,19 @@ namespace AzureCVCamera
                 }
             }
 
-            private readonly Camera2BasicFragment _owner;
+            private readonly CameraActivity _owner;
         }
 
         class CameraCaptureSessionCallback : CameraCaptureSession.StateCallback
         {
-            public CameraCaptureSessionCallback(Camera2BasicFragment owner)
+            public CameraCaptureSessionCallback(CameraActivity owner)
             {
                 _owner = owner;
             }
 
             public override void OnConfigureFailed(CameraCaptureSession? session)
             {
-                _owner.Activity.ShowToast("Failed");
+                _owner.ShowToast("Failed");
             }
 
             public override void OnConfigured(CameraCaptureSession? session)
@@ -1040,14 +1007,14 @@ namespace AzureCVCamera
                 }
             }
 
-            private readonly Camera2BasicFragment _owner;
+            private readonly CameraActivity _owner;
         }
 
         class CameraCaptureStillPictureSessionCallback : CameraCaptureSession.CaptureCallback
         {
             private static readonly string TAG = "CameraCaptureStillPictureSessionCallback";
 
-            public CameraCaptureStillPictureSessionCallback(Camera2BasicFragment owner)
+            public CameraCaptureStillPictureSessionCallback(CameraActivity owner)
             {
                 _owner = owner;
             }
@@ -1059,19 +1026,19 @@ namespace AzureCVCamera
                     throw new NotImplementedException();
                 }
 
-                _owner.Activity.ShowToast("Saved: " + _owner._file);
+                _owner.ShowToast("Saved: " + _owner._file);
                 Log.Debug(TAG, _owner._file.ToString());
                 _owner.UnlockFocus();
 
                 _owner.ProcessOCR();
             }
 
-            private readonly Camera2BasicFragment _owner;
+            private readonly CameraActivity _owner;
         }
 
         class CameraStateListener : CameraDevice.StateCallback
         {
-            public CameraStateListener(Camera2BasicFragment owner)
+            public CameraStateListener(CameraActivity owner)
             {
                 _owner = owner;
             }
@@ -1098,19 +1065,19 @@ namespace AzureCVCamera
                 _owner._cameraDevice = null;
                 if (_owner == null)
                     return;
-                Activity activity = _owner.Activity;
+                Activity activity = _owner;
                 if (activity != null)
                 {
                     activity.Finish();
                 }
             }
 
-            private readonly Camera2BasicFragment _owner;
+            private readonly CameraActivity _owner;
         }
 
         class ImageAvailableListener : Java.Lang.Object, ImageReader.IOnImageAvailableListener
         {
-            public ImageAvailableListener(Camera2BasicFragment fragment, File file)
+            public ImageAvailableListener(CameraActivity fragment, File file)
             {
                 _owner = fragment;
                 _file = file;
@@ -1129,7 +1096,7 @@ namespace AzureCVCamera
             }
 
             private readonly File _file;
-            private readonly Camera2BasicFragment _owner;
+            private readonly CameraActivity _owner;
 
             private class ImageSaver : Java.Lang.Object, IRunnable
             {
