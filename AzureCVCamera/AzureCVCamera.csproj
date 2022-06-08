@@ -50,7 +50,6 @@
     <Compile Include="Resources\Resource.designer.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="BitmapHelpers.cs" />
-    <Compile Include="Constants.cs" />
     <Compile Include="AzureCV.cs" />
     <Compile Include="CameraDeviceSpec.cs" />
     <Compile Include="Activities\ActivityShowToastExtensions.cs" />

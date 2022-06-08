@@ -33,9 +33,25 @@ namespace AzureCVCamera
 		{
 		}
 
+        protected override void OnCreate(Bundle? savedInstanceState)
+        {
+            base.OnCreate(savedInstanceState);
+
+            var apikey = Intent?.GetStringExtra("AzureComputerVisionApiKey");
+            var endpoint = Intent?.GetStringExtra("AzureComputerVisionSubscriptionEndpoint");
+
+            _azureComputerVisionApiKey = apikey;
+            _azureComputerVisionEndpoint = endpoint;
+        }
+
         public override void OnCaptureCompleted(string filename)
         {
             base.OnCaptureCompleted(filename);
+
+            if (_azureComputerVisionApiKey == null || _azureComputerVisionEndpoint == null)
+            {
+                return;
+            }
 
             var orientation = BitmapHelpers.GetOrientation(filename);
 
@@ -51,7 +67,7 @@ namespace AzureCVCamera
 
                 Task.Run(async () =>
                 {
-                    var ocrtext = await new AzureCVClient(Constants.AzureComputerVisionApiKey, Constants.AzureComputerVisionEndpoint).ProcessFileAsync(resizedPath);
+                    var ocrtext = await new AzureCVClient(_azureComputerVisionApiKey, _azureComputerVisionEndpoint).ProcessFileAsync(resizedPath);
 
                     var intent = new Intent();
                     intent.PutExtra("file", filename);
@@ -62,6 +78,9 @@ namespace AzureCVCamera
                 });
             }
         }
+
+        private string? _azureComputerVisionApiKey;
+        private string? _azureComputerVisionEndpoint;
     }
 }
 
