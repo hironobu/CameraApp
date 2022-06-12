@@ -28,7 +28,7 @@ namespace AzureCVCamera
     }
 
     [Activity(Label = "@string/app_name", Theme = "@style/AppTheme.NoActionBar")]
-    public partial class CameraActivity : Activity, View.IOnClickListener, ActivityCompat.IOnRequestPermissionsResultCallback, IPreviewSizeCallback
+    public class CameraActivity : Activity, View.IOnClickListener, ActivityCompat.IOnRequestPermissionsResultCallback, IPreviewSizeCallback
     {
         protected override void OnCreate(Bundle? savedInstanceState)
         {
@@ -218,22 +218,6 @@ namespace AzureCVCamera
                 // ErrorDialog.NewInstance(GetString(Resource.String.camera_error)).Show(ChildFragmentManager, FRAGMENT_DIALOG);
                 e.PrintStackTrace();
             }
-        }
-
-        public struct PreviewDimension
-        {
-            public PreviewDimension(int width, int height, int maxWidth, int maxHeight)
-            {
-                Width = width;
-                Height = height;
-                MaxWidth = maxWidth;
-                MaxHeight = maxHeight;
-            }
-
-            public int Width;
-            public int Height;
-            public int MaxWidth;
-            public int MaxHeight;
         }
 
         // Opens the camera specified by {@link Camera2BasicFragment#mCameraId}.
@@ -648,17 +632,6 @@ namespace AzureCVCamera
 
         private IPreviewSizeCallback? _previewSizeCallback;
 
-        class ByAreaComparator : Java.Lang.Object, IComparator
-        {
-            public int Compare(Java.Lang.Object? lhs, Java.Lang.Object? rhs)
-            {
-                var lhsSize = (Size?)lhs ?? new Size(0, 0);
-                var rhsSize = (Size?)rhs ?? new Size(0, 0);
-                // We cast here to ensure the multiplications won't overflow
-                return Long.Signum((long)lhsSize.Width * lhsSize.Height - (long)rhsSize.Width * rhsSize.Height);
-            }
-        }
-
         class Camera2BasicSurfaceTextureListener : Java.Lang.Object, TextureView.ISurfaceTextureListener
         {
             public Camera2BasicSurfaceTextureListener(CameraActivity owner)
@@ -918,6 +891,33 @@ namespace AzureCVCamera
                 private File _file;
             }
         }
+    }
+
+    class ByAreaComparator : Java.Lang.Object, IComparator
+    {
+        public int Compare(Java.Lang.Object? lhs, Java.Lang.Object? rhs)
+        {
+            var lhsSize = (Size?)lhs ?? new Size(0, 0);
+            var rhsSize = (Size?)rhs ?? new Size(0, 0);
+            // We cast here to ensure the multiplications won't overflow
+            return Long.Signum((long)lhsSize.Width * lhsSize.Height - (long)rhsSize.Width * rhsSize.Height);
+        }
+    }
+
+    public struct PreviewDimension
+    {
+        public PreviewDimension(int width, int height, int maxWidth, int maxHeight)
+        {
+            Width = width;
+            Height = height;
+            MaxWidth = maxWidth;
+            MaxHeight = maxHeight;
+        }
+
+        public int Width;
+        public int Height;
+        public int MaxWidth;
+        public int MaxHeight;
     }
 
     public class Camera2Const

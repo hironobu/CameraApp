@@ -58,6 +58,9 @@ namespace CameraApp
         {
             var intent = new Intent(this, typeof(AzureCVCamera.ComputerVisionCameraActivity));
 
+            intent.PutExtra("AzureComputerVisionApiKey", "74d7f4aec4ce4b97a32bac9636d85717");
+            intent.PutExtra("AzureComputerVisionSubscriptionEndpoint", "https://meuzz-cameraapp.cognitiveservices.azure.com/");
+
             StartActivityForResult(intent, 0);
         }
 

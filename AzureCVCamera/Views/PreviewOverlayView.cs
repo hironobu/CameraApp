@@ -37,19 +37,19 @@ namespace AzureCVCamera
             base.OnMeasure(widthMeasureSpec, heightMeasureSpec);
             int width = MeasureSpec.GetSize(widthMeasureSpec);
             int height = MeasureSpec.GetSize(heightMeasureSpec);
-            if (0 == mRatioWidth || 0 == mRatioHeight)
+            if (_ratioWidth == 0 || _ratioHeight == 0)
             {
                 SetMeasuredDimension(width, height);
             }
             else
             {
-                if (width < (float)height * mRatioWidth / (float)mRatioHeight)
+                if (width < (float)height * _ratioWidth / (float)_ratioHeight)
                 {
-                    SetMeasuredDimension(width, width * mRatioHeight / mRatioWidth);
+                    SetMeasuredDimension(width, width * _ratioHeight / _ratioWidth);
                 }
                 else
                 {
-                    SetMeasuredDimension(height * mRatioWidth / mRatioHeight, height);
+                    SetMeasuredDimension(height * _ratioWidth / _ratioHeight, height);
                 }
             }
         }
@@ -57,6 +57,11 @@ namespace AzureCVCamera
         protected override void OnDraw(Canvas? canvas)
         {
             base.OnDraw(canvas);
+
+            if (AvailableSize.Width == 0 && AvailableSize.Height == 0)
+            {
+                return;
+            }
 
             if (Bitmap != null)
             {
@@ -77,8 +82,8 @@ namespace AzureCVCamera
             canvas?.DrawRect(rect, _paint);
         }
 
-        private int mRatioWidth = 0;
-        private int mRatioHeight = 0;
+        private int _ratioWidth = 0;
+        private int _ratioHeight = 0;
 
         private Paint _paint = new Paint();
     }
