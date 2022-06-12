@@ -541,10 +541,13 @@ namespace AzureCVCamera
 			public static int closeCamera = 2131230722;
 			
 			// aapt resource value: 0x7F080003
-			public static int request_permission = 2131230723;
+			public static int hello = 2131230723;
 			
 			// aapt resource value: 0x7F080004
-			public static int status_bar_notification_info_overflow = 2131230724;
+			public static int request_permission = 2131230724;
+			
+			// aapt resource value: 0x7F080005
+			public static int status_bar_notification_info_overflow = 2131230725;
 			
 			static String()
 			{

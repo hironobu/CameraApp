@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CameraApp", "CameraApp\Came
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AzureCVCamera", "AzureCVCamera\AzureCVCamera.csproj", "{BF8B0252-D094-4013-95B0-0591CD503A41}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Meuzz.Android.Utils.Camera", "Meuzz.Android.Utils.Camera\Meuzz.Android.Utils.Camera.csproj", "{F6C7D5DF-6DE6-46FF-BED2-6397D3142313}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{BF8B0252-D094-4013-95B0-0591CD503A41}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BF8B0252-D094-4013-95B0-0591CD503A41}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BF8B0252-D094-4013-95B0-0591CD503A41}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F6C7D5DF-6DE6-46FF-BED2-6397D3142313}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F6C7D5DF-6DE6-46FF-BED2-6397D3142313}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F6C7D5DF-6DE6-46FF-BED2-6397D3142313}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F6C7D5DF-6DE6-46FF-BED2-6397D3142313}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

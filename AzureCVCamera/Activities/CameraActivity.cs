@@ -17,6 +17,7 @@ using Java.IO;
 using Java.Lang;
 using Java.Util;
 using Java.Util.Concurrent;
+using Meuzz.Android.Utils.Camera;
 using Math = Java.Lang.Math;
 using Orientation = Android.Content.Res.Orientation;
 
@@ -891,33 +892,6 @@ namespace AzureCVCamera
                 private File _file;
             }
         }
-    }
-
-    class ByAreaComparator : Java.Lang.Object, IComparator
-    {
-        public int Compare(Java.Lang.Object? lhs, Java.Lang.Object? rhs)
-        {
-            var lhsSize = (Size?)lhs ?? new Size(0, 0);
-            var rhsSize = (Size?)rhs ?? new Size(0, 0);
-            // We cast here to ensure the multiplications won't overflow
-            return Long.Signum((long)lhsSize.Width * lhsSize.Height - (long)rhsSize.Width * rhsSize.Height);
-        }
-    }
-
-    public struct PreviewDimension
-    {
-        public PreviewDimension(int width, int height, int maxWidth, int maxHeight)
-        {
-            Width = width;
-            Height = height;
-            MaxWidth = maxWidth;
-            MaxHeight = maxHeight;
-        }
-
-        public int Width;
-        public int Height;
-        public int MaxWidth;
-        public int MaxHeight;
     }
 
     public class Camera2Const
